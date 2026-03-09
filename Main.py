@@ -17,7 +17,7 @@ class Program_Ui:
             self.textEdit_password_reg.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
             self.textEdit_surname.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
             self.textEdit_name.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
-            self.textEdit_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
+            self.comboBox_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
             self.textEdit_age.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
             self.addFile_education.setStyleSheet("QPushButton {background-color: #cccccc; border: none; color: #808080}")
             self.textEdit_description.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0)")
@@ -42,9 +42,9 @@ class Program_Ui:
                 check = True
                 self.textEdit_name.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 2px solid red; border-radius: 8px;")
 
-            if self.textEdit_country.text() == '':
+            if self.comboBox_country.currentIndex() == 0:
                 check = True
-                self.textEdit_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 2px solid red; border-radius: 8px;")
+                self.comboBox_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 2px solid red; border-radius: 8px;")
 
             if self.textEdit_age.text() == '' and self.comboBox_roles.currentIndex() == 1:
                 check = True
@@ -76,7 +76,7 @@ class Program_Ui:
                 self.textEdit_surname.clear()
                 self.textEdit_name.clear()
                 self.textEdit_patronum.clear()
-                self.textEdit_country.clear()
+                self.comboBox_country.clear()
                 self.textEdit_age.clear()
                 self.textEdit_education.clear()
                 self.textEdit_description.clear()
@@ -161,7 +161,6 @@ class Program_Ui:
 
     def edit_contact_at_table(self):
         try:
-            # 1. Проверяем, выбрана ли строка
             table = self.table_of_contacts_registration
             selected_row = table.currentRow()
 
@@ -169,11 +168,9 @@ class Program_Ui:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт для редактирования!")
                 return
 
-            # 2. Получаем текущие данные из таблицы
             current_type = table.item(selected_row, 0).text()
             current_value = table.item(selected_row, 1).text()
 
-            # 3. Создаем диалог (аналогично добавлению)
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Редактирование контакта")
             dialog.setFixedSize(350, 180)
@@ -182,18 +179,16 @@ class Program_Ui:
             types_data = fetch_all('select * from Типы_контактов', ())
             combo = QtWidgets.QComboBox()
 
-            # Извлекаем названия и плейсхолдеры
             type_names = [str(i[1]) for i in types_data] if types_data else []
             placeholders = [str(i[2]) for i in types_data] if types_data else []
 
             combo.addItems(type_names)
 
-            # Устанавливаем текущий тип в комбобоксе
             if current_type in type_names:
                 combo.setCurrentText(current_type)
 
             line_edit = QtWidgets.QLineEdit()
-            line_edit.setText(current_value)  # Предзаполняем поле текущим значением
+            line_edit.setText(current_value)
             self._font(line_edit, 12)
             self._font(combo, 12)
 
@@ -226,7 +221,6 @@ class Program_Ui:
                     QtWidgets.QMessageBox.warning(None, "Ошибка", "Поле ввода не может быть пустым!")
                     return
 
-                # Обновляем существующие ячейки
                 item_type = table.item(selected_row, 0)
                 item_value = table.item(selected_row, 1)
 
@@ -267,7 +261,6 @@ class Program_Ui:
             dialog.setFixedSize(350, 220)
             layout = QtWidgets.QVBoxLayout(dialog)
 
-            # Загружаем языки и уровни
             all_langs = fetch_all('SELECT id_языка, Название FROM Языки', ())
             all_levels = fetch_all('SELECT id_уровня, Название, id_языка FROM Уровни', ())
 
@@ -278,15 +271,12 @@ class Program_Ui:
             self._font(combo_lang, 12)
             self._font(combo_level, 12)
 
-            # Логика обновления уровней при смене языка
             def update_levels():
                 combo_level.clear()
                 lang_name = combo_lang.currentText()
                 if not lang_name: return
 
-                # Ищем ID выбранного языка
                 lang_id = next((i[0] for i in all_langs if i[1] == lang_name), None)
-                # Фильтруем уровни для этого языка
                 filtered_levels = [i[1] for i in all_levels if i[2] == lang_id]
                 combo_level.addItems(filtered_levels)
 
@@ -331,7 +321,7 @@ class Program_Ui:
 
     def edit_language_at_table(self):
         try:
-            table = self.table_of_languages_registration
+            table = self.table_of_language_registration
             selected_row = table.currentRow()
             if selected_row == -1:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите строку!")
@@ -383,7 +373,7 @@ class Program_Ui:
 
     def delete_language_from_table(self):
         try:
-            table = self.table_of_languages_registration
+            table = self.table_of_language_registration
             selected_row = table.currentRow()
             if selected_row == -1:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите строку!")
@@ -397,88 +387,188 @@ class Program_Ui:
 
     def add_contact_edit(self):
         try:
-            # Диалог ввода типа и значения
-            type_val, ok1 = QtWidgets.QInputDialog.getItem(None, "Добавить контакт", "Тип:",
-                                                           ["Телефон", "Email", "TG", "VK"], 0, False)
-            if not ok1: return
-            value, ok2 = QtWidgets.QInputDialog.getText(None, "Добавить контакт", f"Введите {type_val}:")
-            if not ok2 or not value.strip(): return
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Добавить контакт")
+            dialog.setFixedSize(350, 180)
+            layout = QtWidgets.QVBoxLayout(dialog)
 
-            new_id = get_new_id("Контакты", "id_контакта")
-            data = {
-                "id_контакта": new_id,
-                "UserId": self.current_user_id,
-                "Тип": type_val,
-                "Значение": value.strip()
-            }
-            insert_row("Контакты", data)
+            # Загружаем типы из БД
+            types_data = fetch_all('SELECT * FROM Типы_контактов')
+            combo = QtWidgets.QComboBox()
+            combo.addItems([str(i[1]) for i in types_data])
+            placeholders = [str(i[2]) for i in types_data]
 
-            # Перезагрузка таблицы
-            reload_table(self.table_of_contacts_editing,
-                         "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
-                         ("Тип", "Значение"), (self.current_user_id,))
+            line_edit = QtWidgets.QLineEdit()
+            self._font(line_edit, 12)
+            self._font(combo, 12)
+
+            combo.currentIndexChanged.connect(lambda: line_edit.setPlaceholderText(placeholders[combo.currentIndex()]))
+            if placeholders: line_edit.setPlaceholderText(placeholders[0])
+
+            buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+
+            layout.addWidget(QtWidgets.QLabel("Тип контакта:"))
+            layout.addWidget(combo)
+            layout.addWidget(QtWidgets.QLabel("Значение:"))
+            layout.addWidget(line_edit)
+            layout.addWidget(buttons)
+
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                val = line_edit.text().strip()
+                if not val:
+                    QtWidgets.QMessageBox.warning(None, "Ошибка", "Значение не может быть пустым!")
+                    return
+
+                new_id = get_new_id("Контакты", "id_контакта")
+                data = {
+                    "id_контакта": new_id,
+                    "UserId": self.current_user_id,
+                    "Тип": combo.currentText(),
+                    "Значение": val
+                }
+                insert_row("Контакты", data)
+
+                # Обновляем таблицу (запрос из вашего оригинала)
+                reload_table(self.table_of_contacts_editing,
+                             "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
+                             values=(self.current_user_id,))
         except Exception as e:
             print(f"Ошибка добавления контакта: {e}")
 
     def edit_contact_edit(self):
         try:
-            pk = self.get_selected_pk(self.table_of_contacts_editing)
+            table = self.table_of_contacts_editing
+            pk = self.get_selected_pk_widget(table)
             if pk is None:
-                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт для редактирования")
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт!")
                 return
 
-            current_val = self.table_of_contacts_editing.item(self.table_of_contacts_editing.currentRow(), 1).text()
-            new_val, ok = QtWidgets.QInputDialog.getText(None, "Редактирование", "Новое значение:", text=current_val)
+            row = table.currentRow()
+            current_type = table.item(row, 1).text()
+            current_val = table.item(row, 2).text()
 
-            if ok and new_val.strip():
-                update_row("Контакты", {"Значение": new_val.strip()}, "id_контакта", pk)
-                reload_table(self.table_of_contacts_editing,
-                             "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
-                             ("Тип", "Значение"), (self.current_user_id,))
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Редактирование контакта")
+            dialog.setFixedSize(350, 180)
+            layout = QtWidgets.QVBoxLayout(dialog)
+
+            types_data = fetch_all('SELECT * FROM Типы_контактов')
+            combo = QtWidgets.QComboBox()
+            type_names = [str(i[1]) for i in types_data]
+            combo.addItems(type_names)
+            combo.setCurrentText(current_type)
+
+            line_edit = QtWidgets.QLineEdit(current_val)
+            self._font(line_edit, 12)
+
+            buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+
+            layout.addWidget(QtWidgets.QLabel("Тип:"))
+            layout.addWidget(combo)
+            layout.addWidget(QtWidgets.QLabel("Значение:"))
+            layout.addWidget(line_edit)
+            layout.addWidget(buttons)
+
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                new_val = line_edit.text().strip()
+                if not new_val: return
+
+                update_row("Контакты", pk, {"Тип": combo.currentText(), "Значение": new_val}, "id_контакта")
+                reload_table(table, "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
+                             values=(self.current_user_id,))
         except Exception as e:
-            print(f"Ошибка редактирования контакта: {e}")
+            print(f"Ошибка редактирования: {e}")
 
     def delete_contact_edit(self):
         try:
-            pk = self.get_selected_pk(self.table_of_contacts_editing)
-            if pk is None: return
+            table = self.table_of_contacts_editing
+            # Получаем PK (id_контакта) выделенной строки
+            pk = self.get_selected_pk_widget(table)
 
-            confirm = QtWidgets.QMessageBox.question(None, "Удаление", "Удалить выбранный контакт?")
+            if pk is None:
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт для удаления!")
+                return
+
+            confirm = QtWidgets.QMessageBox.question(
+                None, "Подтверждение", "Вы уверены, что хотите удалить этот контакт?",
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            )
+
             if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
                 delete_row("Контакты", "id_контакта", pk)
-                reload_table(self.table_of_contacts_editing,
+
+                reload_table(table,
                              "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
-                             ("Тип", "Значение"), (self.current_user_id,))
+                             values=(self.current_user_id,))
+
+                QtWidgets.QMessageBox.information(None, "Успех", "Контакт удален!")
+
         except Exception as e:
-            print(f"Ошибка удаления контакта: {e}")
+            print(f"Ошибка при удалении контакта: {e}")
+            traceback.print_exc()
 
     def add_language_edit(self):
         try:
-            lang, ok1 = QtWidgets.QInputDialog.getText(None, "Язык", "Название языка:")
-            if not ok1 or not lang.strip(): return
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Добавить язык")
+            dialog.setFixedSize(350, 220)
+            layout = QtWidgets.QVBoxLayout(dialog)
 
-            level, ok2 = QtWidgets.QInputDialog.getItem(None, "Уровень", "Уровень владения:",
-                                                        ["A1", "A2", "B1", "B2", "C1", "C2", "Native"], 0, False)
-            if not ok2: return
+            all_langs = fetch_all('SELECT id_языка, Название FROM Языки')
+            all_levels = fetch_all('SELECT id_уровня, Название, id_языка FROM Уровни')
 
-            new_id = get_new_id("Языки", "id_языка")
-            data = {
-                "id_языка": new_id,
-                "UserId": self.current_user_id,
-                "Название": lang.strip(),
-                "id_уровня": level
-            }
-            insert_row("Языки", data)
+            combo_lang = QtWidgets.QComboBox()
+            combo_lang.addItems([str(i[1]) for i in all_langs])
+            combo_level = QtWidgets.QComboBox()
+            self._font(combo_lang, 12)
+            self._font(combo_level, 12)
 
-            reload_table(self.table_of_language_editing,
-                         "SELECT id_языка, Название, id_уровня FROM Языки WHERE UserId = %s",
-                         ("Название", "Уровень"), (self.current_user_id,))
+            def update_levels():
+                combo_level.clear()
+                lang_id = next((i[0] for i in all_langs if i[1] == combo_lang.currentText()), None)
+                combo_level.addItems([i[1] for i in all_levels if i[2] == lang_id])
+
+            combo_lang.currentIndexChanged.connect(update_levels)
+            update_levels()
+
+            buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+
+            layout.addWidget(QtWidgets.QLabel("Язык:"))
+            layout.addWidget(combo_lang)
+            layout.addWidget(QtWidgets.QLabel("Уровень:"))
+            layout.addWidget(combo_level)
+            layout.addWidget(buttons)
+
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                # Внимание: здесь мы сохраняем в таблицу Языки_преподавателей (или вашу связующую),
+                # так как id_языка обычно уникален.
+                new_id = get_new_id("Языки_преподавателей", "id_записи")
+                data = {
+                    "id_записи": new_id,
+                    "UserId": self.current_user_id,
+                    "id_языка": next(i[0] for i in all_langs if i[1] == combo_lang.currentText()),
+                    "id_уровня": next(i[0] for i in all_levels if i[1] == combo_level.currentText())
+                }
+                insert_row("Языки_преподавателей", data)
+
+                reload_table(self.table_of_language_editing,
+                             "SELECT yp.id_записи, y.Название, u.Название FROM Языки_преподавателей yp JOIN Языки y ON yp.id_языка = y.id_языка JOIN Уровни u ON yp.id_уровня = u.id_уровня WHERE yp.UserId = %s",
+                             values=(self.current_user_id,))
         except Exception as e:
-            print(f"Ошибка добавления языка: {e}")
+            print(f"Ошибка: {e}")
 
     def edit_language_edit(self):
         try:
-            pk = self.get_selected_pk(self.table_of_language_editing)
+            pk = self.get_selected_pk_widget(self.table_of_language_editing)
             if pk is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите язык из списка")
                 return
@@ -495,17 +585,18 @@ class Program_Ui:
 
     def delete_language_edit(self):
         try:
-            pk = self.get_selected_pk(self.table_of_language_editing)
+            pk = self.get_selected_pk_widget(self.table_of_language_editing)
             if pk is None: return
 
-            confirm = QtWidgets.QMessageBox.question(None, "Удаление", "Удалить этот язык?")
-            if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
-                delete_row("Языки", "id_языка", pk)
+            if QtWidgets.QMessageBox.question(None, "Удаление",
+                                              "Удалить этот язык?") == QtWidgets.QMessageBox.StandardButton.Yes:
+                # Исправлено имя таблицы на ту, которая используется в JOIN выше
+                delete_row("Языки_преподавателей", "id_записи", pk)
                 reload_table(self.table_of_language_editing,
-                             "SELECT id_языка, Название, Уровень FROM Языки WHERE UserId = %s",
-                             ("Название", "Уровень"), (self.current_user_id,))
+                             "SELECT yp.id_записи, y.Название, u.Название FROM Языки_преподавателей yp JOIN Языки y ON yp.id_языка = y.id_языка JOIN Уровни u ON yp.id_уровня = u.id_уровня WHERE yp.UserId = %s",
+                             values=(self.current_user_id,))
         except Exception as e:
-            print(f"Ошибка удаления языка: {e}")
+            print(f"Ошибка удаления: {e}")
 
     def save_tables_data_to_db(self):
         try:
@@ -522,14 +613,13 @@ class Program_Ui:
                     print(f"Ошибка: Тип контакта '{type_name}' не найден в БД!")
                     continue
 
-                type_id = type_res[0][0]  # Получаем числовой ID
+                type_id = type_res[0][0]
 
-                # 2. Теперь формируем данные для вставки
                 new_contact_id = get_new_id(contact_table, "id_записи")
                 contact_data = {
                     "id_записи": new_contact_id,
                     "UserId": self.current_user_id,
-                    "id_типа_контакта": type_id,  # ПЕРЕДАЕМ ID, А НЕ СТРОКУ
+                    "id_типа_контакта": type_id,
                     "Значение": contact_value
                 }
 
@@ -566,7 +656,7 @@ class Program_Ui:
 
     def send_course_application(self):
         try:
-            course_id = self.get_selected_pk(self.table_of_courses)
+            course_id = self.get_selected_pk_widget(self.table_of_courses)
             course_name = fetch_cell(table_name='Курсы', column='Название', primary_key='id_курса', value=course_id)
             text, ok = QtWidgets.QInputDialog.getMultiLineText(
                 None,
@@ -683,7 +773,7 @@ class Program_Ui:
 
     def open_application_dialog(self, table):
         try:
-            application_id = self.get_selected_pk(table)
+            application_id = self.get_selected_pk_widget(table)
 
             if application_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите заявку в таблице!")
@@ -744,7 +834,7 @@ class Program_Ui:
 
     def open_profile(self, tableWidget, frame):
         try:
-            self.observed_user_id = self.get_selected_pk(tableWidget)
+            self.observed_user_id = self.get_selected_pk_widget(tableWidget)
             print(self.observed_user_id)
             role = fetch_cell(table_name="Пользователи", column="id_роли", value=self.observed_user_id, primary_key="UserId")
             if role == 3:
@@ -788,8 +878,11 @@ class Program_Ui:
             reload_line(line_widget=self.output_roles, table_name="Роли", column="Название",
                         primary_key="id_роли", key_value=role)
 
-            reload_line(line_widget=self.output_country, table_name=table_role, column="Страна",
-                        primary_key="UserId", key_value=self.observed_user_id)
+            current_country_id = fetch_cell(role, 'Страна', self.observed_user_id, 'UserId')
+
+            reload_line(line_widget=self.output_country_profile, table_name='Страны', column="Название",
+                        primary_key="id_страны",
+                        key_value=current_country_id)
 
             if role == 3:
                 reload_line(line_widget=self.output_age, table_name="Студенты", column="Возраст",
@@ -815,7 +908,7 @@ class Program_Ui:
 
     def open_course_info(self, table_widget):
         try:
-            self.observed_course_id = self.get_selected_pk(table_widget)
+            self.observed_course_id = self.get_selected_pk_widget(table_widget)
             if self.observed_course_id is None:
                 return
             course_data = fetch_one("Курсы", "id_курса", self.observed_course_id)
@@ -871,8 +964,8 @@ class Program_Ui:
 
     def course_tables(self):
         try:
-            reload_table(self.table_of_students_course, "SELECT s.UserId, CONCAT_WS(' ', s.Фамилия, s.Имя, s.Отчество) AS `ФИО Студента`, s.Страна, s.Возраст FROM Студенты s JOIN Студенты_На_Курсах snk ON s.UserId = snk.UserId WHERE snk.id_курса = %s;", values=(self.observed_course_id,))
-            reload_table(self.table_of_teachers_course,"SELECT p.UserId, CONCAT_WS(' ', p.Фамилия, p.Имя, p.Отчество) AS `ФИО Преподавателя`, p.Страна FROM Преподаватели p JOIN Преподаватели_на_курсах pnk ON p.UserId = pnk.UserId WHERE pnk.id_курса = %s;",values=(self.observed_course_id,))
+            reload_table(self.table_of_students_course, "SELECT s.UserId, CONCAT_WS(' ', s.Фамилия, s.Имя, s.Отчество) AS `ФИО Студента`, c.Название, s.Возраст FROM Студенты s JOIN Студенты_На_Курсах snk ON s.UserId = snk.UserId JOIN Страны c ON s.Страна = c.id_страны WHERE snk.id_курса = %s;", values=(self.observed_course_id,))
+            reload_table(self.table_of_teachers_course,"SELECT p.UserId, CONCAT_WS(' ', p.Фамилия, p.Имя, p.Отчество) AS `ФИО Преподавателя`, c.Название FROM Преподаватели p JOIN Преподаватели_на_курсах pnk ON p.UserId = pnk.UserId JOIN Страны c ON p.Страна = c.id_страны WHERE pnk.id_курса = %s;",values=(self.observed_course_id,))
             reload_table(self.teacher_application_list, "SELECT з.`Номер_заявки`, пр.`Фамилия`, пр.`Имя`, з.`Содержание` FROM `Заявки` з JOIN `Преподаватели` пр ON з.`UserId` = пр.`UserId` JOIN `Пользователи` п ON з.`UserId` = п.`UserId` JOIN `Роли` р ON п.`id_роли` = р.`id_роли` WHERE р.`Название` = 'Преподаватель' AND з.`id_курса` = %s;", values=(self.observed_course_id,))
             reload_table(self.student_application_list, "SELECT з.`Номер_заявки`, с.`Фамилия`, с.`Имя`, з.`Содержание` FROM `Заявки` з JOIN `Студенты` с ON з.`UserId` = с.`UserId` JOIN `Пользователи` п ON з.`UserId` = п.`UserId` JOIN `Роли` р ON п.`id_роли` = р.`id_роли` WHERE р.`Название` = 'Студент' AND з.`id_курса` = %s;", values=(self.observed_course_id,))
         except Exception as e:
@@ -883,56 +976,211 @@ class Program_Ui:
         self.observed_course_id = None
         self.switch_forms(self.frame_course, self.frame_main)
 
-    def add_level(self):
+    def get_level_data(self, existing_name="", existing_desc=""):
         try:
-            last_added = self.show_add_dialog()
-            if last_added:
-                self.table_of_levels_model.appendRow([QtGui.QStandardItem(last_added["Название"]), QtGui.QStandardItem(last_added["Описание"])])
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Данные уровня")
+            dialog.setFixedSize(400, 300)
+
+            name_edit = QtWidgets.QLineEdit()
+            name_edit.setPlaceholderText("Название")
+            name_edit.setText(existing_name)
+
+            desc_edit = QtWidgets.QTextEdit()
+            desc_edit.setPlaceholderText("Описание")
+            desc_edit.setText(existing_desc)
+
+            buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok |
+                QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            )
+
+            layout = QtWidgets.QVBoxLayout(dialog)
+            layout.addWidget(QtWidgets.QLabel("Название уровня:"))
+            layout.addWidget(name_edit)
+            layout.addWidget(QtWidgets.QLabel("Описание:"))
+            layout.addWidget(desc_edit)
+            layout.addWidget(buttons)
+
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+
+            if dialog.exec():
+                return {
+                    "Название": name_edit.text(),
+                    "Описание": desc_edit.toPlainText()
+                }
+            return None
         except Exception as e:
-            print(e)
+            print(f"Ошибка диалога: {e}")
+            return None
+
+    def add_level(self, model):
+        try:
+            new_level_data = self.get_level_data()
+
+            if new_level_data and new_level_data["Название"].strip():
+                item_name = QtGui.QStandardItem(new_level_data["Название"].strip())
+                item_desc = QtGui.QStandardItem(new_level_data["Описание"].strip())
+
+                model.appendRow([item_name, item_desc])
+
+        except Exception as e:
+            print(f"Ошибка при добавлении уровня: {e}")
             traceback.print_exc()
 
-    def add_language(self):
+    def edit_level(self, tableView, model):
         try:
-            name = self.textEdit_language_name.text().strip()
-            if not name:
-                QtWidgets.QMessageBox.critical(None, "Ошибка", f"Все поля должны быть заполнены")
-                return
-            language_id = get_new_id("Языки", "id_языка")
+            current_index = tableView.currentIndex()
 
-            model = self.table_of_levels_model
-            if model.rowCount() == 0:
-                QtWidgets.QMessageBox.critical(None, "Ошибка", f"Все поля должны быть заполнены")
+            if not current_index.isValid():
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите уровень для изменения.")
                 return
 
-            for row in range(model.rowCount()):
-                name_index = model.index(row, 0)
-                desc_index = model.index(row, 1)
+            row = current_index.row()
 
-                level_name = model.data(name_index)
-                description = model.data(desc_index) or ""
+            current_name_item = model.item(row, 0)
+            current_desc_item = model.item(row, 1)
 
-                if not level_name:
-                    QtWidgets.QMessageBox.critical(None, "Ошибка", f"Все поля должны быть заполнены")
-                    return
+            current_name = current_name_item.text() if current_name_item else ""
+            current_desc = current_desc_item.text() if current_desc_item else ""
 
-                if not description:
-                    QtWidgets.QMessageBox.critical(None, "Ошибка", f"Все поля должны быть заполнены")
-                    return
+            updated_data = self.get_level_data(existing_name=current_name, existing_desc=current_desc)
 
-                level_id = get_new_id("Уровни", "id_уровня")
-                insert_row("Языки", {"id_языка": language_id, "Название": name})
-                insert_row("Уровни", {"id_уровня": level_id, "Название": level_name, "id_языка": language_id, "Описание": description})
-
-                self.switch_forms(self.frame_language, self.frame_main)
+            if updated_data and updated_data["Название"]:
+                model.item(row, 0).setText(updated_data["Название"])
+                model.item(row, 1).setText(updated_data["Описание"])
 
         except Exception as e:
-            print(e)
+            print(f"Ошибка при изменении уровня: {e}")
             traceback.print_exc()
+
+    def delete_level(self, tableView, model):
+        try:
+            current_index = tableView.currentIndex()
+
+            if not current_index.isValid():
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите уровень для удаления.")
+                return
+
+            row = current_index.row()
+
+            reply = QtWidgets.QMessageBox.question(
+                None, 'Подтверждение',
+                "Вы уверены, что хотите удалить этот уровень?",
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+                QtWidgets.QMessageBox.StandardButton.No
+            )
+
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                model.removeRow(row)
+
+
+        except Exception as e:
+            print(f"Ошибка при удалении уровня: {e}")
+            traceback.print_exc()
+
+    def prepare_add_language(self):
+        self.current_language_id = None
+        self.textEdit_language_name.clear()
+        self.table_of_levels_model.setRowCount(0)
+
+        self.pushButton_save_language.setText("Добавить")
+        if hasattr(self, 'pushButton_delete_language'):
+            self.pushButton_delete_language.hide()
+
+        self.switch_forms(self.frame_main, self.frame_language)
+
+    def open_language_info(self, source_table):
+        try:
+            lang_id = self.get_selected_pk_widget(source_table)
+            if lang_id is None:
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите язык из списка!")
+                return
+
+            self.current_language_id = lang_id
+
+            lang_data = fetch_all("SELECT Название FROM Языки WHERE id_языка = %s", (lang_id,))
+            if lang_data:
+                self.textEdit_language_name.setText(str(lang_data[0][0]))
+
+            levels_data = fetch_all("SELECT Название FROM Уровни WHERE id_языка = %s", (lang_id,))
+
+            self.table_of_levels_model.clear()
+            self.table_of_levels_model.setHorizontalHeaderLabels(["Название уровня"])
+
+            if levels_data:
+                for row in levels_data:
+                    item = QtGui.QStandardItem(str(row[0]))
+                    self.table_of_levels_model.appendRow(item)
+
+            self.pushButton_delete_language.show()
+            self.pushButton_save_language.setText("Сохранить")
+
+            self.frame_language.show()
+            self.frame_language.raise_()
+
+        except Exception as e:
+            print(f"Ошибка при загрузке языка: {e}")
+            traceback.print_exc()
+
+    def save_language_logic(self):
+        name = self.textEdit_language_name.text()
+        if not name:
+            QtWidgets.QMessageBox.warning(None, "Ошибка", "Введите название языка!")
+            return
+
+        try:
+            if self.current_language_id:
+                update_row("Языки", self.current_language_id, {"Название": name}, "id_языка")
+                lang_id = self.current_language_id
+
+                conn = get_db_connection()
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM Уровни WHERE id_языка = %s", (lang_id,))
+                conn.commit()
+                conn.close()
+            else:
+                lang_id = get_new_id("Языки", "id_языка")
+                insert_row("Языки", {"id_языка": lang_id, "Название": name})
+
+            for row in range(self.table_of_levels_model.rowCount()):
+                lvl_name = self.table_of_levels_model.item(row, 0).text()
+                lvl_desc = self.table_of_levels_model.item(row, 1).text() if self.table_of_levels_model.item(row,
+                                                                                                             1) else ""
+
+                lvl_id = get_new_id("Уровни", "id_уровня")
+                insert_row("Уровни", {
+                    "id_уровня": lvl_id,
+                    "Название": lvl_name,
+                    "id_языка": lang_id,
+                    "Описание": lvl_desc
+                })
+
+            QtWidgets.QMessageBox.information(None, "Успех", "Данные о языке сохранены!")
+            self.frame_language.hide()
+
+        except Exception as e:
+            print(f"Ошибка сохранения: {e}")
+            traceback.print_exc()
+
+    def delete_current_language(self):
+        if not self.current_language_id:
+            return
+
+        confirm = QtWidgets.QMessageBox.question(None, "Подтверждение", "Удалить этот язык и все его уровни?")
+        if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+            try:
+                delete_row("Языки", self.current_language_id, "id_языка")
+
+                self.frame_language.hide()
+                QtWidgets.QMessageBox.information(None, "Удалено", "Язык удален.")
+            except Exception as e:
+                print(f"Ошибка удаления: {e}")
 
     def ban_selected_user(self, table_widget):
         try:
-            user_id = self.get_selected_pk(table_widget)
+            user_id = self.get_selected_pk_widget(table_widget)
 
             if user_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите пользователя из списка.")
@@ -960,7 +1208,7 @@ class Program_Ui:
 
     def unban_selected_user(self):
         try:
-            user_id = self.get_selected_pk(self.table_of_banned)
+            user_id = self.get_selected_pk_widget(self.table_of_banned)
 
             if user_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите пользователя из списка.")
@@ -986,49 +1234,218 @@ class Program_Ui:
             QtWidgets.QMessageBox.critical(None, "Ошибка", f"{e}")
             traceback.print_exc()
 
-    def show_add_dialog(self):
+    def add_lesson(self):
         try:
             dialog = QtWidgets.QDialog()
-            dialog.setWindowTitle("Добавить запись")
-            dialog.setFixedSize(400, 300)
+            dialog.setWindowTitle("Добавить занятие")
+            dialog.setFixedSize(350, 250)
+            layout = QtWidgets.QVBoxLayout(dialog)
 
-            name_edit = QtWidgets.QLineEdit()
-            name_edit.setPlaceholderText("Название")
+            time_start = QtWidgets.QTimeEdit()
+            time_end = QtWidgets.QTimeEdit()
+            desc_edit = QtWidgets.QLineEdit()
 
-            desc_edit = QtWidgets.QTextEdit()
-            desc_edit.setPlaceholderText("Описание")
+            for w in [time_start, time_end, desc_edit]:
+                self._font(w, 12)
+
+            layout.addWidget(QtWidgets.QLabel("Время начала:"))
+            layout.addWidget(time_start)
+            layout.addWidget(QtWidgets.QLabel("Время окончания:"))
+            layout.addWidget(time_end)
+            layout.addWidget(QtWidgets.QLabel("Описание (тема):"))
+            layout.addWidget(desc_edit)
 
             buttons = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.StandardButton.Ok |
-                QtWidgets.QDialogButtonBox.StandardButton.Cancel
-            )
-
-            layout = QtWidgets.QVBoxLayout(dialog)
-            layout.addWidget(name_edit)
-            layout.addWidget(desc_edit)
-            layout.addWidget(buttons)
-
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-            if dialog.exec():
-                return {
-                    "Название": name_edit.text(),
-                    "Описание": desc_edit.toPlainText()
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                new_id = get_new_id("Занятия", "id_занятия")
+                data = {
+                    "id_занятия": new_id,
+                    "id_курса": self.observed_course_id,
+                    "Описание": desc_edit.text() or "Без описания",
+                    "id_преподавателя": self.current_user_id,  # Ставим текущего преподавателя
+                    "Дата": self.observed_schedule_date,
+                    "Время_начала": time_start.time().toString("HH:mm:ss"),
+                    "Время_окончания": time_end.time().toString("HH:mm:ss")
                 }
-
-            return None
+                insert_row("Занятия", data)
+                QtWidgets.QMessageBox.information(None, "Успех", "Занятие добавлено!")
         except Exception as e:
-            print(e)
+            traceback.print_exc()
+
+    def edit_lesson(self):
+        try:
+            lesson_id = self.get_selected_pk_widget(self.table_of_schedule)
+            if lesson_id is None:
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите занятие для изменения!")
+                return
+
+            # Получаем текущие данные
+            lesson = fetch_one("Занятия", "id_занятия", lesson_id)
+            if not lesson: return
+
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Изменить занятие")
+            dialog.setFixedSize(350, 250)
+            layout = QtWidgets.QVBoxLayout(dialog)
+
+            time_start = QtWidgets.QTimeEdit()
+            time_end = QtWidgets.QTimeEdit()
+            desc_edit = QtWidgets.QLineEdit()
+
+            # Предзаполнение (извлекаем время из timedelta, если база возвращает его так)
+            t_s = lesson[5]  # Время_начала
+            t_e = lesson[6]  # Время_окончания
+
+            # Безопасный парсинг времени
+            if hasattr(t_s, 'seconds'):
+                time_start.setTime(QtCore.QTime(t_s.seconds // 3600, (t_s.seconds // 60) % 60))
+                time_end.setTime(QtCore.QTime(t_e.seconds // 3600, (t_e.seconds // 60) % 60))
+
+            desc_edit.setText(lesson[2])
+
+            layout.addWidget(QtWidgets.QLabel("Время начала:"))
+            layout.addWidget(time_start)
+            layout.addWidget(QtWidgets.QLabel("Время окончания:"))
+            layout.addWidget(time_end)
+            layout.addWidget(QtWidgets.QLabel("Описание (тема):"))
+            layout.addWidget(desc_edit)
+
+            buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                update_data = {
+                    "Описание": desc_edit.text() or "Без описания",
+                    "Время_начала": time_start.time().toString("HH:mm:ss"),
+                    "Время_окончания": time_end.time().toString("HH:mm:ss")
+                }
+                update_row("Занятия", lesson_id, update_data, "id_занятия")
+                QtWidgets.QMessageBox.information(None, "Успех", "Занятие обновлено!")
+        except Exception as e:
+            traceback.print_exc()
+
+    def delete_lesson(self):
+        try:
+            lesson_id = self.get_selected_pk_widget(self.table_of_schedule)
+            if lesson_id is None:
+                QtWidgets.QMessageBox.warning(None, "Ошибка", "Выберите занятие для удаления!")
+                return
+
+            if QtWidgets.QMessageBox.question(None, "Удаление",
+                                              "Удалить это занятие?") == QtWidgets.QMessageBox.StandardButton.Yes:
+                delete_row("Занятия", lesson_id, "id_занятия")
+        except Exception as e:
             traceback.print_exc()
 
     # ==============================
     # Helper methods
     # ==============================
 
+    def manage_schedule_for_date(self, qdate):
+        try:
+            date_str = qdate.toString("yyyy-MM-dd")
+            self.observed_schedule_date = date_str  # Сохраняем дату для CRUD методов
+
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle(f"Расписание на {qdate.toString('dd.MM.yyyy')}")
+            dialog.setFixedSize(700, 450)
+            layout = QtWidgets.QVBoxLayout(dialog)
+
+            self.table_of_schedule = QtWidgets.QTableWidget()
+            self.table_of_schedule.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+            layout.addWidget(self.table_of_schedule)
+
+            def reload_schedule():
+                query = """
+                        SELECT з.id_занятия, \
+                               з.Время_начала, \
+                               з.Время_окончания, \
+                               з.Описание,
+                               CONCAT(п.Фамилия, ' ', п.Имя) AS Преподаватель
+                        FROM Занятия з
+                                 JOIN Преподаватели п ON з.id_преподавателя = п.UserId
+                        WHERE з.id_курса = %s \
+                          AND з.Дата = %s
+                        ORDER BY з.Время_начала; \
+                        """
+                reload_table(self.table_of_schedule, query, ("Начало", "Конец", "Описание", "Преподаватель"),
+                             (self.observed_course_id, date_str))
+                self.table_of_schedule.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+            reload_schedule()
+            if self.current_role_id == 2:
+                btn_layout = QtWidgets.QHBoxLayout()
+
+                btn_add = QtWidgets.QPushButton("Добавить")
+                btn_edit = QtWidgets.QPushButton("Изменить")
+                btn_delete = QtWidgets.QPushButton("Удалить")
+
+                for btn in [btn_add, btn_edit, btn_delete]:
+                    self._font(btn, 14)
+                    btn.setStyleSheet("background-color: rgb(85, 0, 0); color: white; padding: 5px;")
+                    btn_layout.addWidget(btn)
+
+                layout.addLayout(btn_layout)
+
+                btn_add.clicked.connect(
+                    lambda: (self.add_lesson(), reload_schedule(), self.update_calendar_highlights()))
+                btn_edit.clicked.connect(lambda: (self.edit_lesson(), reload_schedule()))
+                btn_delete.clicked.connect(
+                    lambda: (self.delete_lesson(), reload_schedule(), self.update_calendar_highlights()))
+
+            btn_close = QtWidgets.QPushButton("Закрыть")
+            self._font(btn_close, 14)
+            btn_close.clicked.connect(dialog.accept)
+            layout.addWidget(btn_close)
+
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Ошибка открытия расписания: {e}")
+            traceback.print_exc()
+
+    def update_calendar_highlights(self):
+        try:
+            # Очищаем предыдущее форматирование (устанавливаем стандартный формат для всех возможных дат)
+            default_format = QtGui.QTextCharFormat()
+            # Для надежности очищаем форматы в виджете
+            self.schedule_calendar.setDateTextFormat(QtCore.QDate(), default_format)
+
+            if not self.observed_course_id:
+                return
+
+            # Получаем даты занятий для выбранного курса
+            query = "SELECT DISTINCT Дата FROM Занятия WHERE id_курса = %s"
+            dates = fetch_all(query, (self.observed_course_id,))
+
+            if not dates: return
+
+            # Создаем формат для дней с занятиями
+            highlight_format = QtGui.QTextCharFormat()
+            highlight_format.setBackground(QtGui.QColor(255, 200, 200))  # Светло-красный цвет
+            highlight_format.setForeground(QtGui.QColor(85, 0, 0))
+            highlight_format.setFontWeight(QtGui.QFont.Weight.Bold)
+
+            for row in dates:
+                date_obj = row[0]  # date_obj имеет тип datetime.date
+                qdate = QtCore.QDate(date_obj.year, date_obj.month, date_obj.day)
+                self.schedule_calendar.setDateTextFormat(qdate, highlight_format)
+
+        except Exception as e:
+            print(f"Ошибка подсветки календаря: {e}")
+            traceback.print_exc()
+
     def observe_marks(self):
         self.switch_forms(self.frame_course, self.frame_mark)
-        self.observed_marks_user = self.get_selected_pk(self.table_of_students_course)
+        self.observed_marks_user = self.get_selected_pk_widget(self.table_of_students_course)
         reload_table(table_widget=self.table_of_marks,
                      query="SELECT Номер_записи, Оценка, Максимальный_балл, Дата, Описание  FROM `Оценки` WHERE `UserId` = %s AND `id_курса` = %s ORDER BY `Дата` DESC;",
                      columns=('Оценка', 'Максимальный балл', 'Дата', 'Описание'), values=(self.observed_marks_user, self.observed_course_id))
@@ -1037,10 +1454,9 @@ class Program_Ui:
         try:
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Выставить оценку")
-            dialog.setFixedSize(350, 320)  # Немного увеличил высоту для нового поля
+            dialog.setFixedSize(350, 320)
             layout = QtWidgets.QVBoxLayout(dialog)
 
-            # Виджеты ввода
             spin_mark = QtWidgets.QSpinBox()
             spin_mark.setRange(0, 100)
 
@@ -1048,12 +1464,10 @@ class Program_Ui:
             spin_max.setRange(1, 100)
             spin_max.setValue(100)
 
-            # --- Новое поле выбора даты ---
             date_edit = QtWidgets.QDateEdit()
-            date_edit.setCalendarPopup(True)  # Выпадающий календарь
-            date_edit.setDate(QtCore.QDate.currentDate())  # По умолчанию сегодня
-            date_edit.setMaximumDate(QtCore.QDate.currentDate())  # Нельзя выбрать будущее
-            # ------------------------------
+            date_edit.setCalendarPopup(True)
+            date_edit.setDate(QtCore.QDate.currentDate())
+            date_edit.setMaximumDate(QtCore.QDate.currentDate())
 
             line_desc = QtWidgets.QLineEdit()
 
@@ -1078,7 +1492,6 @@ class Program_Ui:
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
                 new_id = get_new_id("Оценки", "Номер_записи")
 
-                # Получаем дату из виджета в формате SQL
                 selected_date = date_edit.date().toString("yyyy-MM-dd")
 
                 data = {
@@ -1093,7 +1506,6 @@ class Program_Ui:
 
                 insert_row("Оценки", data)
 
-                # Перезагружаем таблицу
                 reload_table(
                     table_widget=self.table_of_marks,
                     query="""SELECT Номер_записи, Оценка, Максимальный_балл, Дата, Описание
@@ -1110,21 +1522,17 @@ class Program_Ui:
 
     def edit_mark(self):
         try:
-            # 1. Проверяем, выбрана ли строка в таблице
             selected_row = self.table_of_marks.currentRow()
             if selected_row == -1:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите оценку для редактирования!")
                 return
 
-            # 2. Получаем ID записи и текущие данные из ячеек таблицы
-            # ID мы сохраняли в UserRole при загрузке (load_marks_to_table)
             item_mark = self.table_of_marks.item(selected_row, 0)
             mark_id = item_mark.data(QtCore.Qt.ItemDataRole.UserRole)
 
             current_value = item_mark.text()
             current_desc = self.table_of_marks.item(selected_row, 3).text()
 
-            # 3. Создаем диалог редактирования
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Редактирование оценки")
             dialog.setFixedSize(350, 200)
@@ -1152,19 +1560,15 @@ class Program_Ui:
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
-
-            # 4. Если нажато ОК — обновляем БД и интерфейс
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
                 new_mark = spin_mark.value()
                 new_desc = line_desc.text().strip()
 
-                # Подготавливаем данные для вашей функции update_row
                 updated_values = {
                     "Оценка": new_mark,
                     "Описание": new_desc
                 }
 
-                # Вызываем вашу функцию из applogic
                 update_row(
                     table="Оценки",
                     record_id=mark_id,
@@ -1172,7 +1576,6 @@ class Program_Ui:
                     primary_key="Номер_записи"
                 )
 
-                # Обновляем визуальное отображение в таблице без перезагрузки всей БД
                 item_mark.setText(str(new_mark))
                 self.table_of_marks.item(selected_row, 3).setText(new_desc)
 
@@ -1225,7 +1628,7 @@ class Program_Ui:
             print(f"Ошибка при скачивании: {e}")
             traceback.print_exc()
 
-    def get_selected_pk(self, table_widget):
+    def get_selected_pk_widget(self, table_widget):
         current_index = table_widget.currentIndex()
 
         if not current_index.isValid():
@@ -1238,6 +1641,18 @@ class Program_Ui:
             return item.data(Qt.ItemDataRole.UserRole)
 
         return None
+
+    def get_selected_pk_view(self, model):
+        current_index = model.currentIndex()
+
+        if not current_index.isValid():
+            return None
+
+        id_index = current_index.sibling(current_index.row(), 0)
+
+        pk = id_index.data(QtCore.Qt.ItemDataRole.UserRole)
+
+        return pk
 
     def on_combo_changed(self, index):
         if index == 0:
@@ -1398,7 +1813,7 @@ class Program_Ui:
 
     def open_notification(self, table):
         try:
-            notification_id = self.get_selected_pk(table)
+            notification_id = self.get_selected_pk_widget(table)
 
             if notification_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите уведомление для чтения!")
@@ -1448,10 +1863,6 @@ class Program_Ui:
                          ("Тема", "Дата"), (self.current_user_id,))
 
             dialog.exec()
-
-        except Exception as e:
-            print(f"Ошибка при открытии уведомления: {e}")
-            traceback.print_exc()
 
         except Exception as e:
             print(f"Ошибка при открытии уведомления: {e}")
@@ -1514,8 +1925,10 @@ class Program_Ui:
                 reload_line(line_widget=self.output_roles_profile, table_name="Роли", column="Название",
                             primary_key="id_роли", key_value=self.current_role_id)
 
-                reload_line(line_widget=self.output_country_profile, table_name=role, column="Страна", primary_key="UserId",
-                             key_value=self.current_user_id)
+                current_country_id = fetch_cell(role, 'Страна', self.current_user_id, 'UserId')
+
+                reload_line(line_widget=self.output_country_profile, table_name='Страны', column="Название", primary_key="id_страны",
+                             key_value=current_country_id)
                 if self.current_role_id == 3:
                     reload_line(line_widget=self.output_age_profile, table_name="Студенты", column="Возраст", primary_key="UserId", key_value=self.current_user_id)
                 surname = fetch_cell(table_name=role, column="Фамилия", primary_key="UserId",
@@ -1570,7 +1983,7 @@ class Program_Ui:
             with open(self.add_image_name, 'rb') as f:
                 image_blob = f.read()
         else:
-            with open("C:/Users/User/Documents/Колледж/уп 3 курс/coursework/i.jpg", 'rb') as f:
+            with open("image/i.jpg", 'rb') as f:
                 image_blob = f.read()
         self.add_image_name = None
         if self.reg_education_name:
@@ -1598,7 +2011,7 @@ class Program_Ui:
             "Фамилия": self.textEdit_surname.text(),
             "Имя": self.textEdit_name.text(),
             "Отчество": self.textEdit_patronum.text(),
-            "Страна": self.textEdit_country.text(),
+            "Страна": self.comboBox_country.currentIndex()-1,
             "Возраст": int(self.textEdit_age.text()),
             "Фото": image_blob
             }
@@ -1609,7 +2022,7 @@ class Program_Ui:
             "Фамилия": self.textEdit_surname.text(),
             "Имя": self.textEdit_name.text(),
             "Отчество": self.textEdit_patronum.text(),
-            "Страна": self.textEdit_country.text(),
+            "Страна": self.comboBox_country.currentIndex()-1,
             "Образование": file_blob,
             "Описание": self.textEdit_description.toPlainText(),
             "Фото": image_blob
@@ -1664,9 +2077,9 @@ class Program_Ui:
                 reload_line(line_widget=self.textEdit_patronum_edit, table_name=role, column="Отчество",
                             primary_key="UserId", key_value=self.current_user_id)
 
-                reload_line(line_widget=self.textEdit_country_edit, table_name=role, column="Страна",
-                            primary_key="UserId",
-                            key_value=self.current_user_id)
+                self.comboBox_country_edit.clear()
+                self.comboBox_country_edit.addItems([i[0] for i in fetch_all('SELECT Название from Страны')])
+                self.comboBox_country_edit.setCurrentIndex(int(fetch_cell(role, 'Страна', self.current_user_id, "UserId")))
                 if self.current_role_id == 3:
                     reload_line(line_widget=self.textEdit_age_edit, table_name="Студенты", column="Возраст",
                                 primary_key="UserId", key_value=self.current_user_id)
@@ -1702,7 +2115,7 @@ class Program_Ui:
                     "Фамилия": self.textEdit_surname_edit.text(),
                     "Имя": self.textEdit_name_edit.text(),
                     "Отчество": self.textEdit_patronum_edit.text(),
-                    "Страна": self.textEdit_country_edit.text(),
+                    "Страна": self.comboBox_country_edit.currentIndex(),
                     "Возраст": int(self.textEdit_age_edit.text()),
                     "Фото": image_blob
                 }
@@ -1712,7 +2125,7 @@ class Program_Ui:
                     "Фамилия": self.textEdit_surname_edit.text(),
                     "Имя": self.textEdit_name_edit.text(),
                     "Отчество": self.textEdit_patronum_edit.text(),
-                    "Страна": self.textEdit_country_edit.text(),
+                    "Страна": self.comboBox_country_edit.currentIndex(),
                     "Описание": self.textEdit_description_edit.toPlainText(),
                     "Образование": file_blob,
                     "Фото": image_blob
@@ -1730,9 +2143,11 @@ class Program_Ui:
                 reload_line(line_widget=self.output_roles_profile, table_name="Роли", column="Название",
                             primary_key="id_роли", key_value=self.current_role_id)
 
-                reload_line(line_widget=self.output_country_profile, table_name=role, column="Страна",
-                            primary_key="UserId",
-                            key_value=self.current_user_id)
+                current_country_id = fetch_cell(role, 'Страна', self.current_user_id, 'UserId')
+
+                reload_line(line_widget=self.output_country_profile, table_name='Страны', column="Название",
+                            primary_key="id_страны",
+                            key_value=current_country_id)
                 if self.current_role_id == 3:
                     reload_line(line_widget=self.output_age_profile, table_name="Студенты", column="Возраст",
                                 primary_key="UserId", key_value=self.current_user_id)
@@ -1747,7 +2162,7 @@ class Program_Ui:
             role = "Контакты_студентов" if self.current_role_id == 3 else "Контакты_преподавателей"
             reload_table(table_widget=self.table_of_contacts_editing, query=f'SELECT ku.id_записи, tk.Название AS Тип, ku.Значение FROM {role} ku JOIN Типы_контактов tk ON ku.id_типа_контакта = tk.id_типа_контакта WHERE ku.UserId = %s;', values=(self.current_user_id, ))
             if self.current_role_id == 2:
-                reload_table(self.table_of_language_editing, 'SELECT yp.id_записи, y.Название AS Язык, u.Название AS Уровень, FROM Языки_преподавателей yp JOIN Языки y ON yp.id_языка = y.id_языка JOIN Уровни u ON yp.id_уровня = u.id_уровня WHERE yp.UserId = %s;', values=(self.current_user_id, ))
+                reload_table(self.table_of_language_editing, 'SELECT yp.id_записи, y.Название AS Язык, u.Название AS Уровень FROM Языки_преподавателей yp JOIN Языки y ON yp.id_языка = y.id_языка JOIN Уровни u ON yp.id_уровня = u.id_уровня WHERE yp.UserId = %s;', values=(self.current_user_id, ))
             else:
                 self.table_of_language_editing.hide()
                 self.label_language_editing.hide()
@@ -1759,7 +2174,6 @@ class Program_Ui:
         try:
             course_id = get_new_id("Курсы", "id_курса")
             language = fetch_all('select id_языка from Языки where Название = %s', self.comboBox_language.currentText())[0][0]
-            print(language if language else 'Ошибка')
             course_data = {
                 "id_курса": course_id,
                 "Название": self.textEdit_course_name_creation.text(),
@@ -1822,7 +2236,6 @@ class Program_Ui:
             self.current_user_id = user_id
             self.current_role_id = role_id
             self.current_login = login
-            print(self.current_user_id)
             self.enter()
         except Exception as e:
             traceback.print_exc()
@@ -1853,10 +2266,10 @@ class Program_Ui:
     def users_tables(self):
         try:
             reload_table(self.table_of_students,
-                         "SELECT Студенты.UserId AS UserId, CONCAT(Студенты.Фамилия, ' ', Студенты.Имя, ' ', Студенты.Отчество) AS ФИО, Студенты.Страна FROM Студенты JOIN Пользователи ON Студенты.UserId = Пользователи.UserId WHERE Пользователи.Заблокированный = %s;",
+                         "SELECT Студенты.UserId AS UserId, CONCAT(Студенты.Фамилия, ' ', Студенты.Имя, ' ', Студенты.Отчество) AS ФИО, Страны.Название FROM Студенты JOIN Пользователи ON Студенты.UserId = Пользователи.UserId JOIN Страны ON Студенты.Страна = Страны.id_страны WHERE Пользователи.Заблокированный = %s;",
                          ("UserId", "ФИО", "Страна"), values=('0',), show_pk=True)
             reload_table(self.table_of_teachers,
-                         "SELECT Преподаватели.UserId AS UserId, CONCAT(Преподаватели.Фамилия, ' ', Преподаватели.Имя, ' ', Преподаватели.Отчество) AS ФИО, Преподаватели.Страна FROM Преподаватели JOIN Пользователи ON Преподаватели.UserId = Пользователи.UserId WHERE Пользователи.Заблокированный = %s;",
+                         "SELECT Преподаватели.UserId AS UserId, CONCAT(Преподаватели.Фамилия, ' ', Преподаватели.Имя, ' ', Преподаватели.Отчество) AS ФИО, Страны.Название FROM Преподаватели JOIN Пользователи ON Преподаватели.UserId = Пользователи.UserId JOIN Страны ON Преподаватели.Страна = Страны.id_страны WHERE Пользователи.Заблокированный = %s;",
                          ("UserId", "ФИО", "Страна"), values=('0',), show_pk=True)
             reload_table(self.table_of_banned,
                          "SELECT p.UserId, CONCAT(s.Фамилия, ' ', s.Имя, IFNULL(CONCAT(' ', s.Отчество), '')) AS ФИО, 'Студент' AS Роль FROM Пользователи p INNER JOIN Студенты s ON p.UserId = s.UserId WHERE p.Заблокированный = TRUE UNION ALL SELECT  p.UserId, CONCAT(t.Фамилия, ' ', t.Имя, IFNULL(CONCAT(' ', t.Отчество), '')) AS ФИО, 'Преподаватель' AS Роль FROM Пользователи p INNER JOIN Преподаватели t ON p.UserId = t.UserId WHERE p.Заблокированный = TRUE;",
@@ -2009,50 +2422,65 @@ class Program_Ui:
     def load_profile_marks(self):
         try:
             import datetime
+            import traceback
 
             end_date = datetime.date.today()
             start_date = end_date - datetime.timedelta(days=7)
             user_id = self.current_user_id
 
-            dates_query = """
-                          SELECT DISTINCT Дата
-                          FROM Оценки
-                          WHERE UserId = %s \
-                            AND Дата BETWEEN %s AND %s
-                          ORDER BY Дата ASC \
-                          """
-            dates_result = fetch_all(dates_query, (user_id, start_date, end_date))
+            columns_query = """
+                            SELECT Дата, row_num \
+                            FROM (SELECT Дата, \
+                                         ROW_NUMBER() OVER(PARTITION BY id_курса, Дата ORDER BY Номер_записи) as row_num \
+                                  FROM Оценки \
+                                  WHERE UserId = %s \
+                                    AND Дата BETWEEN %s AND %s) as t
+                            GROUP BY Дата, row_num
+                            ORDER BY Дата, row_num \
+                            """
+            columns_result = fetch_all(columns_query, (user_id, start_date, end_date))
 
-            if not dates_result:
+            if not columns_result:
                 self.table_of_profile.clear()
                 self.table_of_profile.setRowCount(0)
                 self.table_of_profile.setColumnCount(0)
                 return
 
-            dates_list = [str(row[0]) for row in dates_result]
-
+            headers_dates = []
             dynamic_columns = []
-            for date_str in dates_list:
+            for row in columns_result:
+                d_str = str(row[0])
+                r_num = row[1]
+
+                headers_dates.append(d_str)
+
                 dynamic_columns.append(
-                    f"MAX(CASE WHEN m.Дата = '{date_str}' THEN m.Оценка ELSE NULL END) AS `{date_str}`"
+                    f"MAX(CASE WHEN m.Дата = '{d_str}' AND m.rn = {r_num} THEN m.Оценка END)"
                 )
 
             columns_sql = ",\n".join(dynamic_columns)
 
             query = f"""
                 SELECT 
-                    c.Название,
+                    id_курса,
+                    Название,
                     {columns_sql}
-                FROM Курсы c
-                JOIN Оценки m ON c.id_курса = m.id_курса
-                WHERE m.UserId = %s AND m.Дата BETWEEN %s AND %s
-                GROUP BY c.id_курса, c.Название
-                ORDER BY c.Название;
+                FROM (
+                    SELECT 
+                        c.id_курса, c.Название, m.Оценка, m.Дата,
+                        ROW_NUMBER() OVER(PARTITION BY m.id_курса, m.Дата ORDER BY m.Номер_записи) as rn
+                    FROM Курсы c
+                    JOIN Оценки m ON c.id_курса = m.id_курса
+                    WHERE m.UserId = %s AND m.Дата BETWEEN %s AND %s
+                ) as m
+                GROUP BY id_курса, Название
+                ORDER BY Название;
             """
 
             rows = fetch_all(query, (user_id, start_date, end_date))
 
-            headers = ["Курс"] + dates_list
+            # 4. Заполняем интерфейс
+            headers = ["Курс"] + headers_dates
             self.table_of_profile.clear()
             self.table_of_profile.setColumnCount(len(headers))
             self.table_of_profile.setHorizontalHeaderLabels(headers)
@@ -2060,15 +2488,26 @@ class Program_Ui:
 
             if rows:
                 for row_idx, row_data in enumerate(rows):
-                    for col_idx, value in enumerate(row_data):
+                    # Столбец 0: Название курса (в row_data индекс 1, т.к. 0 — это id_курса)
+                    item_name = QtWidgets.QTableWidgetItem(str(row_data[1]))
+                    item_name.setFlags(item_name.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+                    self._font(item_name, 10)
+                    self.table_of_profile.setItem(row_idx, 0, item_name)
+
+                    # Столбцы 1 и далее: Оценки (в row_data начинаются со 2-го индекса)
+                    dynamic_data = row_data[2:]
+                    for col_idx, value in enumerate(dynamic_data, start=1):
                         display_value = str(value) if value is not None else "-"
                         item = QtWidgets.QTableWidgetItem(display_value)
 
                         item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                        item.setFlags(item.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
+                        item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                         self._font(item, 10)
 
                         self.table_of_profile.setItem(row_idx, col_idx, item)
+
+            # Опционально: подгоняем размер колонок, как в первой функции
+            self.table_of_profile.resizeColumnsToContents()
 
         except Exception as e:
             print(f"Ошибка динамической таблицы профиля: {e}")
@@ -2095,6 +2534,7 @@ class Program_Ui:
         self._setup_registration_frame()
         self._setup_language_frame()
         self._setup_language_contacts_frame()
+        self._setup_language_contacts_editing_frame()
 
         self._current_frame = self.frame_authorization
 
@@ -2201,7 +2641,18 @@ class Program_Ui:
         }
         """)
         self._font(self.pushButton_registration, 20)
-        self.pushButton_registration.clicked.connect(lambda: self.switch_forms(self.frame_authorization, self.frame_registration))
+        def switch_to_registration():
+            try:
+                self.switch_forms(self.frame_authorization,
+                                  self.frame_registration)
+                self.comboBox_country.clear()
+                self.comboBox_country.addItems(
+                    [''] + [i[0] for i in fetch_all('SELECT Название from Страны')])
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
+
+        self.pushButton_registration.clicked.connect(switch_to_registration)
         self.pushButton_registration.setText("Зарегистрироваться")
 
     # ==============================
@@ -2295,7 +2746,7 @@ class Program_Ui:
                                 background-color: rgb(65, 0, 0);
                             }
                         """)
-        self.pushButton_edit_contacts_registration.setIcon(QtGui.QIcon("edit.png"))
+        self.pushButton_edit_contacts_registration.setIcon(QtGui.QIcon("image/edit.png"))
         self.pushButton_edit_contacts_registration.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_edit_contacts_registration.clicked.connect(self.edit_contact_at_table)
 
@@ -2317,7 +2768,7 @@ class Program_Ui:
                                         background-color: rgb(65, 0, 0);
                                     }
                                 """)
-        self.pushButton_delete_contacts_registration.setIcon(QtGui.QIcon("delete.png"))
+        self.pushButton_delete_contacts_registration.setIcon(QtGui.QIcon("image/delete.png"))
         self.pushButton_delete_contacts_registration.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_delete_contacts_registration.clicked.connect(self.delete_contact_from_table)
 
@@ -2401,7 +2852,7 @@ class Program_Ui:
                         background-color: rgb(65, 0, 0);
                     }
                 """)
-        self.pushButton_edit_language_registration.setIcon(QtGui.QIcon("edit.png"))
+        self.pushButton_edit_language_registration.setIcon(QtGui.QIcon("image/edit.png"))
         self.pushButton_edit_language_registration.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_edit_language_registration.clicked.connect(self.edit_language_at_table)
 
@@ -2423,7 +2874,7 @@ class Program_Ui:
                                 background-color: rgb(65, 0, 0);
                             }
                         """)
-        self.pushButton_delete_language_registration.setIcon(QtGui.QIcon("delete.png"))
+        self.pushButton_delete_language_registration.setIcon(QtGui.QIcon("image/delete.png"))
         self.pushButton_delete_language_registration.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_delete_language_registration.clicked.connect(self.delete_language_from_table)
 
@@ -2621,10 +3072,10 @@ class Program_Ui:
         self._font(self.textEdit_patronum, 15)
         self.textEdit_patronum.setGeometry(250, 480, 160, 30)
 
-        self.textEdit_country = QtWidgets.QLineEdit(self.frame_registration)
-        self.textEdit_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
-        self._font(self.textEdit_country, 15)
-        self.textEdit_country.setGeometry(250, 530, 160, 30)
+        self.comboBox_country = QtWidgets.QComboBox(self.frame_registration)
+        self.comboBox_country.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
+        self._font(self.comboBox_country, 15)
+        self.comboBox_country.setGeometry(250, 530, 160, 30)
 
         self.textEdit_age = QtWidgets.QLineEdit(self.frame_registration)
         self.textEdit_age.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
@@ -2744,7 +3195,7 @@ class Program_Ui:
                                 background-color: rgb(65, 0, 0);
                             }
                         """)
-        self.pushButton_edit_contacts_editing.setIcon(QtGui.QIcon("edit.png"))
+        self.pushButton_edit_contacts_editing.setIcon(QtGui.QIcon("image/edit.png"))
         self.pushButton_edit_contacts_editing.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_edit_contacts_editing.clicked.connect(self.edit_contact_edit)
 
@@ -2766,7 +3217,7 @@ class Program_Ui:
                                         background-color: rgb(65, 0, 0);
                                     }
                                 """)
-        self.pushButton_delete_contacts_editing.setIcon(QtGui.QIcon("delete.png"))
+        self.pushButton_delete_contacts_editing.setIcon(QtGui.QIcon("image/delete.png"))
         self.pushButton_delete_contacts_editing.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_delete_contacts_editing.clicked.connect(self.delete_contact_edit)
 
@@ -2808,7 +3259,7 @@ class Program_Ui:
         self._font(header_l, 20)
         header_l.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-        self.pushButton_add_language_editing = QtWidgets.QPushButton(self.frame_language_contacts)
+        self.pushButton_add_language_editing = QtWidgets.QPushButton(self.frame_language_contacts_editing)
         self.pushButton_add_language_editing.setGeometry(1030, 420, 50, 50)
         self.pushButton_add_language_editing.setStyleSheet("""
             QPushButton {
@@ -2830,7 +3281,7 @@ class Program_Ui:
         self.pushButton_add_language_editing.setText("+")
         self.pushButton_add_language_editing.clicked.connect(self.add_language_edit)
 
-        self.pushButton_edit_language_editing = QtWidgets.QPushButton(self.frame_language_contacts)
+        self.pushButton_edit_language_editing = QtWidgets.QPushButton(self.frame_language_contacts_editing)
         self.pushButton_edit_language_editing.setGeometry(1030, 490, 50, 50)
         self.pushButton_edit_language_editing.setStyleSheet("""
                     QPushButton {
@@ -2848,7 +3299,7 @@ class Program_Ui:
                         background-color: rgb(65, 0, 0);
                     }
                 """)
-        self.pushButton_edit_language_editing.setIcon(QtGui.QIcon("edit.png"))
+        self.pushButton_edit_language_editing.setIcon(QtGui.QIcon("image/edit.png"))
         self.pushButton_edit_language_editing.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_edit_language_editing.clicked.connect(self.edit_language_edit)
 
@@ -2870,7 +3321,7 @@ class Program_Ui:
                                 background-color: rgb(65, 0, 0);
                             }
                         """)
-        self.pushButton_delete_language_editing.setIcon(QtGui.QIcon("delete.png"))
+        self.pushButton_delete_language_editing.setIcon(QtGui.QIcon("image/delete.png"))
         self.pushButton_delete_language_editing.setIconSize(QtCore.QSize(35, 35))
         self.pushButton_delete_language_editing.clicked.connect(self.delete_language_edit)
 
@@ -3058,10 +3509,10 @@ class Program_Ui:
         self._font(self.textEdit_patronum_edit, 15)
         self.textEdit_patronum_edit.setGeometry(250, 480, 160, 30)
 
-        self.textEdit_country_edit = QtWidgets.QLineEdit(self.frame_editing)
-        self.textEdit_country_edit.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
-        self._font(self.textEdit_country_edit, 15)
-        self.textEdit_country_edit.setGeometry(250, 530, 160, 30)
+        self.comboBox_country_edit = QtWidgets.QComboBox(self.frame_editing)
+        self.comboBox_country_edit.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
+        self._font(self.comboBox_country_edit, 15)
+        self.comboBox_country_edit.setGeometry(250, 530, 160, 30)
 
         self.textEdit_age_edit = QtWidgets.QLineEdit(self.frame_editing)
         self.textEdit_age_edit.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
@@ -3364,20 +3815,15 @@ class Program_Ui:
 
         self.table_of_language = QtWidgets.QTableWidget(self.tab_language)
         self.table_of_language.setGeometry(45, 40, 780, 620)
+
+        self.table_of_language.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_of_language.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+
         self.table_of_language.setStyleSheet("""
             QTableWidget {
                 background-color: white;
                 gridline-color: black;
-                font-size: 12px;
                 color: black;
-            }
-            QTableWidget::item {
-                border-right: 1px solid black;
-                border-bottom: 1px solid black;
-            }
-            QTableWidget::item:selected {
-                background-color: #f8f8f8;
-                color: #000;
             }
             QHeaderView::section {
                 background-color: rgb(85, 0, 0);
@@ -3395,60 +3841,23 @@ class Program_Ui:
         self.pushButtonAddLanguage = QtWidgets.QPushButton(self.tab_language)
         self.pushButtonAddLanguage.setGeometry(860, 70, 291, 61)
         self.pushButtonAddLanguage.setStyleSheet("""
-        QPushButton {
-            background-color: rgb(85, 0, 0);
-            color: white;
-            border-radius: 8px;
-            padding: 6px;
-        }
-        QPushButton:hover {
-            background-color: rgb(120, 20, 20);
-        }
-        QPushButton:pressed {
-            background-color: rgb(65, 0, 0);
-        }
+        QPushButton { background-color: rgb(85, 0, 0); color: white; border-radius: 8px; }
+        QPushButton:hover { background-color: rgb(120, 20, 20); }
         """)
         self._font(self.pushButtonAddLanguage, 28)
         self.pushButtonAddLanguage.setText("Добавить")
-        self.pushButtonAddLanguage.clicked.connect(lambda: self.switch_forms(self.frame_main, self.frame_language))
+        # При нажатии вызываем подготовку пустой формы
+        self.pushButtonAddLanguage.clicked.connect(self.prepare_add_language)
 
-        self.pushButtonEditLanguage = QtWidgets.QPushButton(self.tab_language)
-        self.pushButtonEditLanguage.setGeometry(860, 160, 291, 61)
-        self.pushButtonEditLanguage.setStyleSheet("""
-        QPushButton {
-            background-color: rgb(85, 0, 0);
-            color: white;
-            border-radius: 8px;
-            padding: 6px;
-        }
-        QPushButton:hover {
-            background-color: rgb(120, 20, 20);
-        }
-        QPushButton:pressed {
-            background-color: rgb(65, 0, 0);
-        }
+        self.pushButtonViewLanguage = QtWidgets.QPushButton(self.tab_language)
+        self.pushButtonViewLanguage.setGeometry(860, 160, 291, 61)
+        self.pushButtonViewLanguage.setStyleSheet("""
+        QPushButton { background-color: rgb(85, 0, 0); color: white; border-radius: 8px; }
+        QPushButton:hover { background-color: rgb(120, 20, 20); }
         """)
-        self._font(self.pushButtonEditLanguage, 28)
-        self.pushButtonEditLanguage.setText("Изменить")
-
-        self.pushButtonDeleteLanguage = QtWidgets.QPushButton(self.tab_language)
-        self.pushButtonDeleteLanguage.setGeometry(860, 250, 291, 61)
-        self.pushButtonDeleteLanguage.setStyleSheet("""
-        QPushButton {
-            background-color: rgb(85, 0, 0);
-            color: white;
-            border-radius: 8px;
-            padding: 6px;
-        }
-        QPushButton:hover {
-            background-color: rgb(120, 20, 20);
-        }
-        QPushButton:pressed {
-            background-color: rgb(65, 0, 0);
-        }
-        """)
-        self._font(self.pushButtonDeleteLanguage, 28)
-        self.pushButtonDeleteLanguage.setText("Удалить")
+        self._font(self.pushButtonViewLanguage, 28)
+        self.pushButtonViewLanguage.setText("Просмотреть")
+        self.pushButtonViewLanguage.clicked.connect(lambda: self.open_language_info(self.table_of_language))
 
     def _setup_users_tab(self):
         self.tab_users = QtWidgets.QWidget()
@@ -3756,7 +4165,7 @@ class Program_Ui:
 
         self.pushButtonDeleteNotification = QtWidgets.QPushButton(self.tab_notification)
         self.pushButtonDeleteNotification.setGeometry(860, 160, 291, 61)
-        self.pushButtonDeleteNotification.setStyleSheet("""cou
+        self.pushButtonDeleteNotification.setStyleSheet("""
                 QPushButton {
                     background-color: rgb(85, 0, 0);
                     color: white;
@@ -4292,31 +4701,27 @@ class Program_Ui:
         self.tab_schedule_course = QtWidgets.QWidget()
 
         self.schedule_calendar = QtWidgets.QCalendarWidget(self.tab_schedule_course)
-        self.schedule_calendar.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
+        self.schedule_calendar.setGeometry(45, 40, 780, 620)
+        self.schedule_calendar.setStyleSheet("""
+                    QCalendarWidget QWidget { alternate-background-color: #EFE6DE; }
+                    QCalendarWidget QAbstractItemView:enabled { font-size: 16px; background-color: white; color: black; }
+                """)
 
-        self.pushButton_back_to_main_from_schedule = QtWidgets.QPushButton(self.tab_schedule_course )
-        self.pushButton_back_to_main_from_schedule.setGeometry(355, 600, 220, 60)
+        self.schedule_calendar.clicked.connect(self.manage_schedule_for_date)
+
+        self.pushButton_back_to_main_from_schedule = QtWidgets.QPushButton(self.tab_schedule_course)
+        self.pushButton_back_to_main_from_schedule.setGeometry(860, 340, 291,
+                                                               61)  # Переместил кнопку вправо, как на других вкладках
         self.pushButton_back_to_main_from_schedule.setStyleSheet("""
-                                                   QPushButton {
-                                                       background-color: rgb(85, 0, 0);
-                                                       color: white;
-                                                       border-radius: 8px;
-                                                       padding: 6px;
-                                                   }
-                                                   QPushButton:hover {
-                                                       background-color: rgb(120, 20, 20);
-                                                   }
-                                                   QPushButton:pressed {
-                                                       background-color: rgb(65, 0, 0);
-                                                   }
-                                                   """)
-        self._font(self.pushButton_back_to_main_from_schedule, 30)
+                    QPushButton { background-color: rgb(85, 0, 0); color: white; border-radius: 8px; padding: 6px; }
+                    QPushButton:hover { background-color: rgb(120, 20, 20); }
+                    QPushButton:pressed { background-color: rgb(65, 0, 0); }
+                """)
+        self._font(self.pushButton_back_to_main_from_schedule, 28)
         self.pushButton_back_to_main_from_schedule.setText("Назад")
         self.pushButton_back_to_main_from_schedule.clicked.connect(self.close_course_info)
 
-
         self.tabWidget_course.addTab(self.tab_schedule_course, "")
-
         self.tabWidget_course.setTabText(self.tabWidget_course.indexOf(self.tab_schedule_course), "Расписание")
 
     def _setup_application_course_tab(self):
@@ -4762,9 +5167,11 @@ class Program_Ui:
         self.frame_language.setStyleSheet("background-color: #EFE6DE;")
         self.frame_language.setObjectName("frame_language")
 
-        self.pushButton_acceptence_add_language = QtWidgets.QPushButton(self.frame_language)
-        self.pushButton_acceptence_add_language.setGeometry(490, 675, 220, 60)
-        self.pushButton_acceptence_add_language.setStyleSheet("""
+        self.current_language_id = None
+
+        self.pushButton_save_language = QtWidgets.QPushButton(self.frame_language)
+        self.pushButton_save_language.setGeometry(350, 675, 220, 60)
+        self.pushButton_save_language.setStyleSheet("""
         QPushButton {
             background-color: rgb(85, 0, 0);
             color: white;
@@ -4778,65 +5185,95 @@ class Program_Ui:
             background-color: rgb(65, 0, 0);
         }
         """)
-        self._font(self.pushButton_acceptence_add_language, 30)
-        self.pushButton_acceptence_add_language.setText("Принять")
-        self.pushButton_acceptence_add_language.clicked.connect(self.add_language)
+        self._font(self.pushButton_save_language, 25)
+        self.pushButton_save_language.setText("Сохранить")
+        self.pushButton_save_language.clicked.connect(self.save_language_logic)
 
-        self.label_language_name = QtWidgets.QLabel("", self.frame_language)
+        self.pushButton_delete_language = QtWidgets.QPushButton(self.frame_language)
+        self.pushButton_delete_language.setGeometry(600, 675, 220, 60)
+        self.pushButton_delete_language.setStyleSheet("""
+        QPushButton {
+            background-color: rgb(85, 0, 0);
+            color: white;
+            border-radius: 8px;
+            padding: 6px;
+        }
+        QPushButton:hover {
+            background-color: rgb(120, 20, 20);
+        }
+        QPushButton:pressed {
+            background-color: rgb(65, 0, 0);
+        }
+        """)
+        self._font(self.pushButton_delete_language, 25)
+        self.pushButton_delete_language.setText("Удалить")
+        self.pushButton_delete_language.clicked.connect(self.delete_current_language)
+        self.pushButton_delete_language.hide()
+
+        self.label_language_name = QtWidgets.QLabel("Название", self.frame_language)
         self.label_language_name.setGeometry(100, 50, 165, 50)
         self._font(self.label_language_name, 30)
         self.label_language_name.setStyleSheet("color: rgb(85, 0, 0);")
-        self.label_language_name.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-        self.label_language_name.setText("Название")
 
         self.textEdit_language_name = QtWidgets.QLineEdit(self.frame_language)
-        self.textEdit_language_name.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
-        self._font(self.textEdit_language_name, 15)
         self.textEdit_language_name.setGeometry(300, 50, 800, 50)
+        self._font(self.textEdit_language_name, 15)
+        self.textEdit_language_name.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
 
-        self.label_language_level = QtWidgets.QLabel("", self.frame_language)
+        self.label_language_level = QtWidgets.QLabel("Уровни", self.frame_language)
         self.label_language_level.setGeometry(100, 200, 165, 50)
         self._font(self.label_language_level, 30)
         self.label_language_level.setStyleSheet("color: rgb(85, 0, 0);")
-        self.label_language_level.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-        self.label_language_level.setText("Уровни")
 
-        self.table_of_levels_model = QtGui.QStandardItemModel(0, 2)
+        self.table_of_levels_model = QtGui.QStandardItemModel(0, 1)
         self.table_of_levels = QtWidgets.QTableView(self.frame_language)
         self.table_of_levels.setModel(self.table_of_levels_model)
-        self.table_of_levels.setGeometry(100, 250, 800, 350)
-        self._font(self.table_of_levels, 30)
+        self.table_of_levels.setGeometry(125, 275, 800, 350)
         self.table_of_levels.setStyleSheet("""
-                    QTableWidget {
-                        background-color: white;
-                        font-size: 12px;
-                        color: black;
-                        border: 5px solid black
-                    }
-                    QTableWidget::item {
-                        border-right: 1px solid black;
-                        border-bottom: 1px solid black;
-                    }
-                    QTableWidget::item:selected {
-                        background-color: #f8f8f8;
-                        color: #000;
-                    }
-                    QHeaderView::section {
-                        background-color: rgb(85, 0, 0);
-                        color: white;
-                        font-size: 15px;
-                        border: 1px solid black;
-                        padding: 4px;
-                    }
-                """)
-        self.table_of_levels.horizontalHeader().setSectionResizeMode(self.table_of_levels.horizontalHeader().ResizeMode.Stretch)
+                            QTableView {
+                                background-color: white;
+                                font-size: 12px;
+                                color: black;
+                                border: 5px solid black
+                            }
+                            QTableView::item {
+                                border-right: 1px solid black;
+                                border-bottom: 1px solid black;
+                            }
+                            QTableView::item:selected {
+                                background-color: #f8f8f8;
+                                color: #000;
+                            }
+                            QHeaderView::section {
+                                background-color: rgb(85, 0, 0);
+                                color: white;
+                                font-size: 15px;
+                                border: 1px solid black;
+                                padding: 4px;
+                            }
+                        """)
+        self.table_of_levels.horizontalHeader().setSectionResizeMode(
+            self.table_of_levels.horizontalHeader().ResizeMode.Stretch)
         self.table_of_levels.verticalHeader().setVisible(False)
         self.table_of_levels.horizontalHeader().setVisible(False)
 
-        self.pushButtonAddLevel = QtWidgets.QPushButton(self.frame_language)
-        self.pushButtonAddLevel.setGeometry(930, 300, 180, 50)
-        self._font(self.pushButtonAddLevel, 30)
-        self.pushButtonAddLevel.setStyleSheet("""
+        self.pushButtonAddLevel = QtWidgets.QPushButton("Добавить уровень", self.frame_language)
+        self.pushButtonAddLevel.setGeometry(950, 300, 200, 50)
+        self.pushButtonAddLevel.clicked.connect(lambda: self.add_level(self.table_of_levels_model))
+
+        self.pushButtonEditLevel = QtWidgets.QPushButton("Изменить уровень", self.frame_language)
+        self.pushButtonEditLevel.setGeometry(950, 375, 200, 50)
+        self.pushButtonEditLevel.clicked.connect(
+            lambda: self.edit_level(self.table_of_levels, self.table_of_levels_model))
+
+        self.pushButtonDeleteLevel = QtWidgets.QPushButton("Удалить уровень", self.frame_language)
+        self.pushButtonDeleteLevel.setGeometry(950, 450, 200, 50)
+        self.pushButtonDeleteLevel.clicked.connect(
+            lambda: self.delete_level(self.table_of_levels, self.table_of_levels_model))
+
+        for btn in [self.pushButtonAddLevel, self.pushButtonEditLevel, self.pushButtonDeleteLevel]:
+            self._font(btn, 14)
+            btn.setStyleSheet("""
         QPushButton {
             background-color: rgb(85, 0, 0);
             color: white;
@@ -4850,8 +5287,6 @@ class Program_Ui:
             background-color: rgb(65, 0, 0);
         }
         """)
-        self.pushButtonAddLevel.setText("Добавить")
-        self.pushButtonAddLevel.clicked.connect(self.add_level)
 
     # ==============================
     # Marks screen
@@ -4883,7 +5318,7 @@ class Program_Ui:
         """)
         self._font(self.pushButton_back_to_course, 30)
         self.pushButton_back_to_course.setText("Назад")
-        self.pushButton_back_to_course.clicked.connect(lambda: self.switch_frame(self.frame_mark, self.frame_course))
+        self.pushButton_back_to_course.clicked.connect(lambda: self.switch_forms(self.frame_mark, self.frame_course))
 
         self.pushButtonAddMark = QtWidgets.QPushButton(self.frame_mark)
         self.pushButtonAddMark.setGeometry(860, 70, 291, 61)

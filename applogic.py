@@ -12,7 +12,7 @@ def fetch_all(query, values=(), with_description=False):
         f = cur.fetchall()
         desc = cur.description
         if f:
-            rows = [tuple(k.values()) for k in f]
+            rows = tuple(f)
         else:
             rows = None
         cur.close()
@@ -33,7 +33,7 @@ def fetch_one(table_name, column, value):
         cur.execute(query, (value,))
         f = cur.fetchone()
         if f:
-            result = tuple(f.values())
+            result = tuple(f)
         else:
             result = None
         cur.close()
@@ -51,7 +51,7 @@ def fetch_cell(table_name, column, value, primary_key):
         cur.execute(query, (value,))
         f = cur.fetchone()
         if f:
-            result = tuple(f.values())[0]
+            result = tuple(f)[0]
         else:
             result = None
         cur.close()
@@ -104,25 +104,13 @@ def delete_row(table, record_id, primary_key):
         print(e)
         traceback.print_exc()
 
-def get_row_count(table_name):
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(f"SELECT COUNT(*) AS cnt FROM `{table_name}`")
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
-        return result["cnt"]
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
-
 def get_new_id(table_name, id_name):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(f"SELECT COALESCE(MAX({id_name}), 0) + 1 AS new_id FROM {table_name}")
-        result = cur.fetchone()["new_id"]
+        row = cur.fetchone()
+        result = row[0] if row else None
         return result
     except Exception as e:
         print(e)
@@ -138,7 +126,6 @@ def reload_table(table_widget, query, columns=None, values=(), show_pk=False):
     try:
         rows, desc = fetch_all(query, values, True)
 
-        # Очищаем таблицу перед обновлением
         table_widget.clearContents()
         table_widget.setRowCount(0)
         if not columns and desc:

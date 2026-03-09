@@ -4,13 +4,11 @@ from random import choice
 
 def get_db_connection():
     return db.connect(
-        host='localhost',
-        user='root',
-        port=3306,
-        password='zhbr3407',
-        charset='utf8mb4',
-        db='coursework',
-        cursorclass=db.cursors.DictCursor
+        host="5.42.108.60",
+        user="gen_user",
+        passwd="zhbr3407",
+        db="default_db",
+        port=3306
     )
 
 def object_exists(connection, table, column, value):
@@ -23,6 +21,33 @@ def object_exists(connection, table, column, value):
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    countries = ['Абхазия', 'Австралия', 'Австрия', 'Азербайджан', 'Албания', 'Алжир', 'Ангола', 'Андорра',
+    'Антигуа и Барбуда', 'Аргентина', 'Армения', 'Афганистан', 'Багамы', 'Бангладеш', 'Барбадос',
+    'Бахрейн', 'Беларусь', 'Белиз', 'Бельгия', 'Бенин', 'Болгария', 'Боливия', 'Босния и Герцеговина',
+    'Ботсвана', 'Бразилия', 'Бруней', 'Буркина-Фасо', 'Бурунди', 'Бутан', 'Вануату', 'Ватикан',
+    'Великобритания', 'Венгрия', 'Венесуэла', 'Восточный Тимор', 'Вьетнам', 'Габон', 'Гаити',
+    'Гайана', 'Гамбия', 'Гана', 'Гватемала', 'Гвинея', 'Гвинея-Бисау', 'Германия', 'Гондурас',
+    'Гренада', 'Греция', 'Грузия', 'Дания', 'Джибути', 'Доминика', 'Доминиканская Республика',
+    'Египет', 'Замбия', 'Зимбабве', 'Израиль', 'Индия', 'Индонезия', 'Иордания', 'Ирак', 'Иран',
+    'Ирландия', 'Исландия', 'Испания', 'Италия', 'Йемен', 'Кабо-Верде', 'Казахстан', 'Камбоджа',
+    'Камерун', 'Канада', 'Катар', 'Кения', 'Кипр', 'Кирибати', 'Китай', 'Колумбия', 'Коморы',
+    'Республика Конго', 'ДР Конго', 'Коста-Рика', 'Кот-д\'Ивуар', 'Куба', 'Кувейт', 'Кыргызстан',
+    'Лаос', 'Латвия', 'Лесото', 'Либерия', 'Ливан', 'Ливия', 'Литва', 'Лихтенштейн', 'Люксембург',
+    'Маврикий', 'Мавритания', 'Мадагаскар', 'Малави', 'Малайзия', 'Мали', 'Мальдивы', 'Мальта',
+    'Марокко', 'Маршалловы Острова', 'Мексика', 'Микронезия', 'Мозамбик', 'Молдова', 'Монако',
+    'Монголия', 'Мьянма', 'Намибия', 'Науру', 'Непал', 'Нигер', 'Нигерия', 'Нидерланды', 'Никарагуа',
+    'Новая Зеландия', 'Норвегия', 'ОАЭ', 'Оман', 'Пакистан', 'Палау', 'Палестина', 'Панама',
+    'Папуа — Новая Гвинея', 'Парагвай', 'Перу', 'Польша', 'Португалия', 'Россия', 'Руанда', 'Румыния',
+    'Сальвадор', 'Самоа', 'Сан-Марино', 'Сан-Томе и Принсипи', 'Саудовская Аравия', 'Свазиленд',
+    'Сейшельские Острова', 'Сенегал', 'Сент-Винсент и Гренадины', 'Сент-Китс и Невис', 'Сент-Люсия',
+    'Сербия', 'Сингапур', 'Сирия', 'Словакия', 'Словения', 'Соломоновы Острова', 'Сомали', 'Судан',
+    'Суринам', 'США', 'Сьерра-Леоне', 'Таджикистан', 'Таиланд', 'Танзания', 'Того', 'Тонга',
+    'Тринидад и Тобаго', 'Тувалу', 'Тунис', 'Туркменистан', 'Турция', 'Уганда', 'Узбекистан',
+    'Украина', 'Уругвай', 'Фиджи', 'Филиппины', 'Финляндия', 'Франция', 'Хорватия', 'ЦАР', 'Чад',
+    'Черногория', 'Чехия', 'Чили', 'Швейцария', 'Швеция', 'Шри-Ланка', 'Эквадор', 'Экваториальная Гвинея',
+    'Эритрея', 'Эстония', 'Эсватини', 'Эфиопия', 'ЮАР', 'Южная Корея', 'Южная Осетия', 'Южный Судан',
+    'Ямайка', 'Япония']
 
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Роли` ("
@@ -53,17 +78,27 @@ def init_db():
     )
 
     cursor.execute(
+        "CREATE TABLE IF NOT EXISTS `Страны` ("
+        "`id_страны` INT NOT NULL, "
+        "`Название` VARCHAR(45) NOT NULL, "
+        "PRIMARY KEY (`id_страны`))"
+    )
+
+    cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Студенты` ("
         "`UserId` VARCHAR(50) NOT NULL, "
         "`Фамилия` VARCHAR(45) NOT NULL, "
         "`Имя` VARCHAR(45) NOT NULL, "
         "`Отчество` VARCHAR(45), "
-        "`Страна` VARCHAR(45) NOT NULL, "
+        "`Страна` INT NOT NULL, "
         "`Возраст` INT NOT NULL, "
         "`Фото` LONGBLOB, "
         "PRIMARY KEY (`UserId`), "
         "CONSTRAINT `fk_студенты_пользователи` "
         "FOREIGN KEY (`UserId`) REFERENCES `Пользователи` (`UserId`) "
+        "ON DELETE CASCADE ON UPDATE CASCADE,"
+        "CONSTRAINT `fk_студенты_страны` "
+        "FOREIGN KEY (`Страна`) REFERENCES `Страны` (`id_страны`) "
         "ON DELETE CASCADE ON UPDATE CASCADE)"
     )
 
@@ -73,27 +108,22 @@ def init_db():
         "`Фамилия` VARCHAR(45) NOT NULL, "
         "`Имя` VARCHAR(45) NOT NULL, "
         "`Отчество` VARCHAR(45), "
-        "`Страна` VARCHAR(45) NOT NULL, "
+        "`Страна` INT NOT NULL, "
         "`Образование` LONGBLOB, "
         "`Описание` VARCHAR(1000) NOT NULL, "
         "`Фото` LONGBLOB, "
         "PRIMARY KEY (`UserId`), "
         "CONSTRAINT `fk_преподаватели_пользователи` "
         "FOREIGN KEY (`UserId`) REFERENCES `Пользователи` (`UserId`) "
+        "ON DELETE CASCADE ON UPDATE CASCADE,"
+        "CONSTRAINT `fk_преподаватели_страны` "
+        "FOREIGN KEY (`Страна`) REFERENCES `Страны` (`id_страны`) "
         "ON DELETE CASCADE ON UPDATE CASCADE)"
     )
 
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS `Администраторы` ("
-        "`UserId` VARCHAR(50) NOT NULL, "
-        "PRIMARY KEY (`UserId`), "
-        "CONSTRAINT `fk_администраторы_пользователи` "
-        "FOREIGN KEY (`UserId`) REFERENCES `Пользователи` (`UserId`))"
-    )
-
-    cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Контакты_студентов` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_типа_контакта` INT NOT NULL, "
         "`UserId` VARCHAR(50) NOT NULL, "
         "`Значение` VARCHAR(45) NOT NULL, "
@@ -107,7 +137,7 @@ def init_db():
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Контакты_преподавателей` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_типа_контакта` INT NOT NULL, "
         "`UserId` VARCHAR(50) NOT NULL, "
         "`Значение` VARCHAR(45) NOT NULL, "
@@ -179,7 +209,7 @@ def init_db():
 
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Языки_преподавателей` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_языка` INT NOT NULL, "
         "`UserId` VARCHAR(50) NOT NULL, "
         "`id_уровня` INT NOT NULL, "
@@ -199,7 +229,7 @@ def init_db():
 
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Студенты_на_занятиях` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_занятия` INT NOT NULL, "
         "`UserId` VARCHAR(50) NOT NULL, "
         "PRIMARY KEY (`id_записи`), " 
@@ -213,7 +243,7 @@ def init_db():
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Преподаватели_на_курсах` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_курса` INT NOT NULL, "
         "`UserId` VARCHAR(50) NOT NULL, "
         "PRIMARY KEY (`id_записи`), "
@@ -227,7 +257,7 @@ def init_db():
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS `Студенты_На_Курсах` ("
-        "`id_записи` INT NOT NULL AUTO_INCREMENT, "
+        "`id_записи` INT NOT NULL, "
         "`id_курса` INT NOT NULL,"
         "`UserId` VARCHAR(50) NOT NULL,"
         "PRIMARY KEY (`id_записи`),"
@@ -262,7 +292,7 @@ def init_db():
         "`Номер_записи` INT NOT NULL,"
         "`UserId` VARCHAR(50) NOT NULL,"
         "`Дата` DATE NOT NULL,"
-        "`Тема` VARCHAR(20) NOT NULL,"
+        "`Тема` VARCHAR(50) NOT NULL,"
         "`Содержание` VARCHAR(200) NOT NULL,"
         "`Прочитано` BOOLEAN NOT NULL DEFAULT FALSE,"
         "PRIMARY KEY (`Номер_записи`),"
@@ -306,11 +336,15 @@ def init_db():
         Admin = (userId, 'Main_admin', 1, password)
         cursor.execute("""INSERT INTO Пользователи (UserId, Логин, id_роли, Пароль)
                           VALUES (%s, %s, %s, %s)""", Admin)
-        cursor.execute("""INSERT INTO Администраторы (UserId) VALUES (%s)""", (userId, ))
         f = open('password.txt', 'w')
         f.write(password)
         f.close()
+    cursor.execute("SELECT * FROM `Страны`")
+    coun = cursor.fetchall()
 
+    if not coun:
+        for i, s in enumerate(countries):
+            cursor.execute("INSERT INTO Страны (id_страны, Название) Values (%s, %s)", (i, s))
     conn.commit()
 
     cursor.close()
