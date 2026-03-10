@@ -441,7 +441,7 @@ class Program_Ui:
     def edit_contact_edit(self):
         try:
             table = self.table_of_contacts_editing
-            pk = self.get_selected_pk_widget(table)
+            pk = self.get_selected_pk(table)
             if pk is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт!")
                 return
@@ -489,7 +489,7 @@ class Program_Ui:
         try:
             table = self.table_of_contacts_editing
             # Получаем PK (id_контакта) выделенной строки
-            pk = self.get_selected_pk_widget(table)
+            pk = self.get_selected_pk(table)
 
             if pk is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите контакт для удаления!")
@@ -568,7 +568,7 @@ class Program_Ui:
 
     def edit_language_edit(self):
         try:
-            pk = self.get_selected_pk_widget(self.table_of_language_editing)
+            pk = self.get_selected_pk(self.table_of_language_editing)
             if pk is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите язык из списка")
                 return
@@ -585,7 +585,7 @@ class Program_Ui:
 
     def delete_language_edit(self):
         try:
-            pk = self.get_selected_pk_widget(self.table_of_language_editing)
+            pk = self.get_selected_pk(self.table_of_language_editing)
             if pk is None: return
 
             if QtWidgets.QMessageBox.question(None, "Удаление",
@@ -656,7 +656,10 @@ class Program_Ui:
 
     def send_course_application(self):
         try:
-            course_id = self.get_selected_pk_widget(self.table_of_courses)
+            course_id = self.get_selected_pk(self.table_of_courses)
+            check_role = 'Студенты_На_Курсах' if self.current_role_id == 3 else 'Преподаватели_на_курсах'
+            if fetch_all("SELECT * FROM {check_role} WHERE id_курса = %s and UserId = %s", (course_id, self.current_user_id)) is None:
+                QtWidgets.QMessageBox.critical(None, "Ошибка", f"Пользователь состоит на данном курсе")
             course_name = fetch_cell(table_name='Курсы', column='Название', primary_key='id_курса', value=course_id)
             text, ok = QtWidgets.QInputDialog.getMultiLineText(
                 None,
@@ -773,7 +776,7 @@ class Program_Ui:
 
     def open_application_dialog(self, table):
         try:
-            application_id = self.get_selected_pk_widget(table)
+            application_id = self.get_selected_pk(table)
 
             if application_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите заявку в таблице!")
@@ -834,7 +837,7 @@ class Program_Ui:
 
     def open_profile(self, tableWidget, frame):
         try:
-            self.observed_user_id = self.get_selected_pk_widget(tableWidget)
+            self.observed_user_id = self.get_selected_pk(tableWidget)
             print(self.observed_user_id)
             role = fetch_cell(table_name="Пользователи", column="id_роли", value=self.observed_user_id, primary_key="UserId")
             if role == 3:
@@ -908,7 +911,7 @@ class Program_Ui:
 
     def open_course_info(self, table_widget):
         try:
-            self.observed_course_id = self.get_selected_pk_widget(table_widget)
+            self.observed_course_id = self.get_selected_pk(table_widget)
             if self.observed_course_id is None:
                 return
             course_data = fetch_one("Курсы", "id_курса", self.observed_course_id)
@@ -946,17 +949,31 @@ class Program_Ui:
                                                                              background: rgb(65, 0, 0);
                                                                              border-bottom-color: #202020;
                                                                          }""")
+                    self.pushButtonExcludeStudent.show()
+                    self.pushButtonMarks.setGeometry(860, 160, 291, 61)
+                    self.pushButtonObserveProfile.setGeometry(860, 250, 291, 61)
+                    self.pushButton_back_to_main_from_students.setGeometry(860, 340, 291, 61)
 
-                elif fetch_all('select * from Студенты_на_курсах where id_курса=%s and UserId=%s', (c_id, self.current_user_id)) is not None:
+                elif fetch_all('select * from Студенты_На_Курсах where id_курса=%s and UserId=%s', (c_id, self.current_user_id)) is not None:
                     self.pushButton_leave_the_course_main_course.setVisible(True)
                     self.pushButton_leave_the_course_main_course.setGeometry(860, 250, 291, 61)
                     self.pushButton_back_to_main_from_main_course.setGeometry(860, 340, 291, 61)
                     self.pushButton_edit_course.setVisible(False)
+
+                    self.pushButtonExcludeStudent.hide()
+                    self.pushButtonMarks.setGeometry(860, 70, 291, 61)
+                    self.pushButtonObserveProfile.setGeometry(860, 160, 291, 61)
+                    self.pushButton_back_to_main_from_students.setGeometry(860, 250, 291, 61)
                 else:
                     self.pushButton_leave_the_course_main_course.setVisible(True)
                     self.pushButton_edit_course.setVisible(False)
                     self.pushButton_back_to_main_from_main_course.setVisible(True)
                     self.pushButton_back_to_main_from_main_course.setGeometry(860, 250, 291, 61)
+
+                    self.pushButtonExcludeStudent.hide()
+                    self.pushButtonMarks.setGeometry(860, 70, 291, 61)
+                    self.pushButtonObserveProfile.setGeometry(860, 160, 291, 61)
+                    self.pushButton_back_to_main_from_students.setGeometry(860, 250, 291, 61)
 
         except Exception as e:
             print(f"Ошибка при открытии курса: {e}")
@@ -974,7 +991,81 @@ class Program_Ui:
 
     def close_course_info(self):
         self.observed_course_id = None
+        self.main_tables()
         self.switch_forms(self.frame_course, self.frame_main)
+
+    def leave_course(self, from_info=False):
+        try:
+            if from_info:
+                course_id = self.observed_course_id
+            else:
+                course_id = self.get_selected_pk(self.table_of_my_courses)
+                if course_id is None:
+                    QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите курс!")
+                    return
+            is_teacher = (self.current_role_id == 2)
+
+            if is_teacher:
+                course_data = fetch_one("Курсы", "id_курса", course_id)
+                if not course_data: return
+                owner_id = course_data[4]
+
+                if owner_id == self.current_user_id:
+                    other_teachers = fetch_all(
+                        "SELECT UserId, Фамилия, Имя FROM Преподаватели WHERE UserId != %s",
+                        (self.current_user_id,)
+                    )
+
+                    if other_teachers:
+                        self.show_transfer_control_dialog(course_id, other_teachers)
+                    else:
+                        confirm = QtWidgets.QMessageBox.question(None, "Удаление",
+                                                                 "Вы единственный преподаватель. Курс будет удален. Продолжить?")
+                        if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                            delete_row("Курсы", "id_курса", course_id)
+                else:
+
+                    execute_query("DELETE FROM Преподаватели_на_курсах WHERE id_курса = %s AND UserId = %s",
+                                  (course_id, self.current_user_id))
+
+            else:
+                confirm = QtWidgets.QMessageBox.question(None, "Выход", "Вы уверены, что хотите покинуть курс?")
+                if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                    execute_query("DELETE FROM Студенты_На_Курсах WHERE id_курса = %s AND UserId = %s",
+                                  (course_id, self.current_user_id))
+                    execute_query("DELETE FROM Оценки WHERE id_курса = %s AND UserId = %s", (course_id, self.current_user_id))
+
+            QtWidgets.QMessageBox.information(None, "Успех", "Операция завершена")
+            self.course_tables()
+            self.close_course_info()
+
+
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            traceback.print_exc()
+
+    def show_transfer_control_dialog(self, course_id, other_teachers):
+        dialog = QtWidgets.QDialog()
+        dialog.setWindowTitle("Передача курса")
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        combo = QtWidgets.QComboBox()
+        teacher_map = {f"{t[1]} {t[2]}": t[0] for t in other_teachers}
+        combo.addItems(teacher_map.keys())
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+
+        layout.addWidget(QtWidgets.QLabel("Выберите нового владельца курса:"))
+        layout.addWidget(combo)
+        layout.addWidget(buttons)
+
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            new_owner_id = teacher_map[combo.currentText()]
+            update_row("Курсы", course_id, {"id_создателя": new_owner_id}, "id_курса")
+
 
     def get_level_data(self, existing_name="", existing_desc=""):
         try:
@@ -1093,7 +1184,7 @@ class Program_Ui:
 
     def open_language_info(self, source_table):
         try:
-            lang_id = self.get_selected_pk_widget(source_table)
+            lang_id = self.get_selected_pk(source_table)
             if lang_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите язык из списка!")
                 return
@@ -1180,7 +1271,7 @@ class Program_Ui:
 
     def ban_selected_user(self, table_widget):
         try:
-            user_id = self.get_selected_pk_widget(table_widget)
+            user_id = self.get_selected_pk(table_widget)
 
             if user_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите пользователя из списка.")
@@ -1208,7 +1299,7 @@ class Program_Ui:
 
     def unban_selected_user(self):
         try:
-            user_id = self.get_selected_pk_widget(self.table_of_banned)
+            user_id = self.get_selected_pk(self.table_of_banned)
 
             if user_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Пожалуйста, выберите пользователя из списка.")
@@ -1279,7 +1370,7 @@ class Program_Ui:
 
     def edit_lesson(self):
         try:
-            lesson_id = self.get_selected_pk_widget(self.table_of_schedule)
+            lesson_id = self.get_selected_pk(self.table_of_schedule)
             if lesson_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите занятие для изменения!")
                 return
@@ -1334,7 +1425,7 @@ class Program_Ui:
 
     def delete_lesson(self):
         try:
-            lesson_id = self.get_selected_pk_widget(self.table_of_schedule)
+            lesson_id = self.get_selected_pk(self.table_of_schedule)
             if lesson_id is None:
                 QtWidgets.QMessageBox.warning(None, "Ошибка", "Выберите занятие для удаления!")
                 return
@@ -1445,10 +1536,18 @@ class Program_Ui:
 
     def observe_marks(self):
         self.switch_forms(self.frame_course, self.frame_mark)
-        self.observed_marks_user = self.get_selected_pk_widget(self.table_of_students_course)
+        self.observed_marks_user = self.get_selected_pk(self.table_of_students_course)
         reload_table(table_widget=self.table_of_marks,
                      query="SELECT Номер_записи, Оценка, Максимальный_балл, Дата, Описание  FROM `Оценки` WHERE `UserId` = %s AND `id_курса` = %s ORDER BY `Дата` DESC;",
                      columns=('Оценка', 'Максимальный балл', 'Дата', 'Описание'), values=(self.observed_marks_user, self.observed_course_id))
+        if fetch_all('Select * From Преподаватели_на_курсах WHERE UserID = %s And id_курса = %', self.current_user_id, self.observed_course_id):
+            self.pushButtonAddMark.show()
+            self.pushButtonEditMark.show()
+            self.pushButtonDeleteMark.show()
+        else:
+            self.pushButtonAddMark.hide()
+            self.pushButtonEditMark.hide()
+            self.pushButtonDeleteMark.hide()
 
     def add_mark(self):
         try:
@@ -1628,7 +1727,7 @@ class Program_Ui:
             print(f"Ошибка при скачивании: {e}")
             traceback.print_exc()
 
-    def get_selected_pk_widget(self, table_widget):
+    def get_selected_pk(self, table_widget):
         current_index = table_widget.currentIndex()
 
         if not current_index.isValid():
@@ -1641,18 +1740,6 @@ class Program_Ui:
             return item.data(Qt.ItemDataRole.UserRole)
 
         return None
-
-    def get_selected_pk_view(self, model):
-        current_index = model.currentIndex()
-
-        if not current_index.isValid():
-            return None
-
-        id_index = current_index.sibling(current_index.row(), 0)
-
-        pk = id_index.data(QtCore.Qt.ItemDataRole.UserRole)
-
-        return pk
 
     def on_combo_changed(self, index):
         if index == 0:
@@ -1813,7 +1900,7 @@ class Program_Ui:
 
     def open_notification(self, table):
         try:
-            notification_id = self.get_selected_pk_widget(table)
+            notification_id = self.get_selected_pk(table)
 
             if notification_id is None:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите уведомление для чтения!")
@@ -4277,12 +4364,13 @@ class Program_Ui:
         """)
         self._font(self.pushButtonExclude, 28)
         self.pushButtonExclude.setText("Выйти из курса")
+        self.pushButtonExclude.clicked.connect(lambda: (self.leave_course()))
 
     def _setup_my_marks(self):
         self.tab_my_marks = QtWidgets.QWidget()
 
         self.report_of_my_marks = QtWidgets.QTableWidget(self.tab_my_marks)
-        self.report_of_my_marks.setGeometry(50, 80, 1100, 500)  # Чуть сдвинул вниз, чтобы влезли даты
+        self.report_of_my_marks.setGeometry(50, 80, 1100, 500)
         self.report_of_my_marks.setStyleSheet("""
                     QTableWidget {
                         background-color: white;
@@ -4463,6 +4551,7 @@ class Program_Ui:
                                                    """)
         self._font(self.pushButton_leave_the_course_main_course, 20)
         self.pushButton_leave_the_course_main_course.setText("Покинуть курс")
+        self.pushButton_leave_the_course_main_course.clicked.connect(lambda: self.leave_course(True))
 
         self.pushButton_back_to_main_from_main_course = QtWidgets.QPushButton(self.tab_main_course)
         self.pushButton_back_to_main_from_main_course.setGeometry(860, 340, 291, 61)

@@ -4,6 +4,20 @@ from PyQt6.QtWidgets import QTableWidgetItem
 from PyQt6.QtCore import Qt
 import traceback
 
+def execute_query(query, values=()):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(query, values)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка выполнения запроса: {e}")
+        traceback.print_exc()
+        return False
+
 def fetch_all(query, values=(), with_description=False):
     try:
         conn = get_db_connection()
