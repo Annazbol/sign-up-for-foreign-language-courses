@@ -1375,7 +1375,7 @@ class Program_Ui:
         try:
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Добавить занятие")
-            dialog.setFixedSize(350, 250)
+            dialog.setMinimumSize(400, 500)
             layout = QtWidgets.QVBoxLayout(dialog)
 
             time_start = QtWidgets.QTimeEdit()
@@ -1383,7 +1383,7 @@ class Program_Ui:
             desc_edit = QtWidgets.QLineEdit()
 
             for w in [time_start, time_end, desc_edit]:
-                self._font(w, 12)
+                self._font(w, 11)
 
             layout.addWidget(QtWidgets.QLabel("Время начала:"))
             layout.addWidget(time_start)
@@ -1392,6 +1392,38 @@ class Program_Ui:
             layout.addWidget(QtWidgets.QLabel("Описание (тема):"))
             layout.addWidget(desc_edit)
 
+            layout.addWidget(QtWidgets.QLabel("Выберите студентов:"))
+
+            select_all_cb = QtWidgets.QCheckBox("Выбрать всех")
+            layout.addWidget(select_all_cb)
+
+            student_list = QtWidgets.QListWidget()
+            layout.addWidget(student_list)
+
+            # Используем fetch_all для получения данных
+            query_students = f"""
+                SELECT s.UserId, CONCAT(s.Фамилия, ' ', s.Имя, IFNULL(CONCAT(' ', s.Отчество), '')) AS ФИО 
+                FROM Студенты s 
+                JOIN Студенты_На_Курсах snk ON s.UserId = snk.UserId 
+                WHERE snk.id_курса = %s
+            """
+            students = fetch_all(query_students, (self.observed_course_id,))
+
+            if students:
+                for s_id, s_name in students:
+                    item = QtWidgets.QListWidgetItem(s_name)
+                    item.setData(QtCore.Qt.ItemDataRole.UserRole, s_id)
+                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+                    student_list.addItem(item)
+
+            def toggle_all(state):
+                check_state = QtCore.Qt.CheckState.Checked if state else QtCore.Qt.CheckState.Unchecked
+                for i in range(student_list.count()):
+                    student_list.item(i).setCheckState(check_state)
+
+            select_all_cb.stateChanged.connect(toggle_all)
+
             buttons = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
             buttons.accepted.connect(dialog.accept)
@@ -1399,18 +1431,34 @@ class Program_Ui:
             layout.addWidget(buttons)
 
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-                new_id = get_new_id("Занятия", "id_занятия")
-                data = {
-                    "id_занятия": new_id,
+                new_lesson_id = get_new_id("Занятия", "id_занятия")
+                lesson_data = {
+                    "id_занятия": new_lesson_id,
                     "id_курса": self.observed_course_id,
                     "Описание": desc_edit.text() or "Без описания",
-                    "id_преподавателя": self.current_user_id,  # Ставим текущего преподавателя
+                    "id_преподавателя": self.current_user_id,
                     "Дата": self.observed_schedule_date,
                     "Время_начала": time_start.time().toString("HH:mm:ss"),
                     "Время_окончания": time_end.time().toString("HH:mm:ss")
                 }
-                insert_row("Занятия", data)
-                QtWidgets.QMessageBox.information(None, "Успех", "Занятие добавлено!")
+                insert_row("Занятия", lesson_data)
+
+                selected_count = 0
+                for i in range(student_list.count()):
+                    item = student_list.item(i)
+                    if item.checkState() == QtCore.Qt.CheckState.Checked:
+                        student_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+                        record_id = get_new_id('Студенты_на_занятиях', 'id_записи')
+                        attendance_data = {
+                            "id_записи": record_id,
+                            "id_занятия": new_lesson_id,
+                            "UserId": student_id
+                        }
+                        insert_row("Студенты_на_занятиях", attendance_data)
+                        selected_count += 1
+
+                QtWidgets.QMessageBox.information(None, "Успех",
+                                                  f"Занятие добавлено! Назначено студентов: {selected_count}")
         except Exception as e:
             traceback.print_exc()
 
@@ -1426,7 +1474,7 @@ class Program_Ui:
 
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Изменить занятие")
-            dialog.setFixedSize(350, 250)
+            dialog.setMinimumSize(400, 550)
             layout = QtWidgets.QVBoxLayout(dialog)
 
             time_start = QtWidgets.QTimeEdit()
@@ -1435,7 +1483,6 @@ class Program_Ui:
 
             t_s = lesson[5]
             t_e = lesson[6]
-
             if hasattr(t_s, 'seconds'):
                 time_start.setTime(QtCore.QTime(t_s.seconds // 3600, (t_s.seconds // 60) % 60))
                 time_end.setTime(QtCore.QTime(t_e.seconds // 3600, (t_e.seconds // 60) % 60))
@@ -1448,6 +1495,48 @@ class Program_Ui:
             layout.addWidget(time_end)
             layout.addWidget(QtWidgets.QLabel("Описание (тема):"))
             layout.addWidget(desc_edit)
+
+            layout.addWidget(QtWidgets.QLabel("Студенты на занятии:"))
+
+            select_all_cb = QtWidgets.QCheckBox("Выбрать всех")
+            layout.addWidget(select_all_cb)
+
+            student_list = QtWidgets.QListWidget()
+            layout.addWidget(student_list)
+
+            # 1. Получаем список всех студентов курса через fetch_all
+            query_all = f"""
+                SELECT s.UserId, CONCAT(s.Фамилия, ' ', s.Имя, IFNULL(CONCAT(' ', s.Отчество), '')) AS ФИО 
+                FROM Студенты s 
+                JOIN Студенты_На_Курсах snk ON s.UserId = snk.UserId 
+                WHERE snk.id_курса = %s
+            """
+            all_students = fetch_all(query_all, (self.observed_course_id,))
+
+            # 2. Получаем ID тех, кто уже записан на это занятие
+            query_current = "SELECT UserId FROM Студенты_на_занятиях WHERE id_занятия = %s"
+            current_attendance = fetch_all(query_current, (lesson_id,))
+
+            present_student_ids = {row[0] for row in current_attendance} if current_attendance else set()
+
+            if all_students:
+                for s_id, s_name in all_students:
+                    item = QtWidgets.QListWidgetItem(s_name)
+                    item.setData(QtCore.Qt.ItemDataRole.UserRole, s_id)
+                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+
+                    if s_id in present_student_ids:
+                        item.setCheckState(QtCore.Qt.CheckState.Checked)
+                    else:
+                        item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+
+                    student_list.addItem(item)
+
+            select_all_cb.stateChanged.connect(lambda state: [
+                student_list.item(i).setCheckState(
+                    QtCore.Qt.CheckState.Checked if state else QtCore.Qt.CheckState.Unchecked)
+                for i in range(student_list.count())
+            ])
 
             buttons = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
@@ -1462,7 +1551,23 @@ class Program_Ui:
                     "Время_окончания": time_end.time().toString("HH:mm:ss")
                 }
                 update_row("Занятия", lesson_id, update_data, "id_занятия")
-                QtWidgets.QMessageBox.information(None, "Успех", "Занятие обновлено!")
+
+                # Для удаления записей используем execute_query (он делает commit)
+                execute_query("DELETE FROM Студенты_на_занятиях WHERE id_занятия = %s", (lesson_id,))
+
+                for i in range(student_list.count()):
+                    item = student_list.item(i)
+                    if item.checkState() == QtCore.Qt.CheckState.Checked:
+                        student_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+                        record_id = get_new_id('Студенты_на_занятиях', 'id_записи')
+                        attendance_data = {
+                            "id_записи": record_id,
+                            "id_занятия": lesson_id,
+                            "UserId": student_id
+                        }
+                        insert_row("Студенты_на_занятиях", attendance_data)
+
+                QtWidgets.QMessageBox.information(None, "Успех", "Данные занятия и список студентов обновлены!")
         except Exception as e:
             traceback.print_exc()
 
@@ -2105,12 +2210,16 @@ class Program_Ui:
                     self.tabWidget_main.setTabText(self.tabWidget_main.indexOf(self.tab_language), "Языки")
 
                     self.pushButtonJoin.setVisible(False)
-                    self.pushButtonJoin.setVisible(True)
                     self.pushButtonObserve.setGeometry(860, 70, 291, 61)
                     self.pushButtonDeleteCourse.setGeometry(860, 160, 291, 61)
                 case 2:
                     self.tabWidget_main.addTab(self.tab_my_course, "")
                     self.tabWidget_main.setTabText(self.tabWidget_main.indexOf(self.tab_my_course), "Мои курсы")
+                    self.pushButtonJoin.setVisible(True)
+                    self.pushButtonObserve.setGeometry(860, 160, 291, 61)
+                    self.pushButtonDeleteCourse.setGeometry(860, 240, 291, 61)
+                    self.label_age_profile_output.hide()
+                    self.output_age_profile.hide()
                 case 3:
                     self.tabWidget_main.addTab(self.tab_my_course, "")
                     self.tabWidget_main.setTabText(self.tabWidget_main.indexOf(self.tab_my_course), "Мои курсы")
@@ -2118,6 +2227,11 @@ class Program_Ui:
                     self.tabWidget_main.addTab(self.tab_my_marks, "")
                     self.tabWidget_main.setTabText(self.tabWidget_main.indexOf(self.tab_my_marks),
                                                    "Личная успеваемость")
+                    self.pushButtonJoin.setVisible(True)
+                    self.pushButtonObserve.setGeometry(860, 160, 291, 61)
+                    self.pushButtonDeleteCourse.setGeometry(860, 240, 291, 61)
+                    self.label_age_profile_output.show()
+                    self.output_age_profile.show()
 
             self.tabWidget_main.addTab(self.tab_notification, "")
             self.tabWidget_main.setTabText(self.tabWidget_main.indexOf(self.tab_notification), "Уведомления")
@@ -4929,9 +5043,77 @@ class Program_Ui:
 
         self.schedule_calendar = QtWidgets.QCalendarWidget(self.tab_schedule_course)
         self.schedule_calendar.setGeometry(45, 40, 780, 620)
+        self._font(self.schedule_calendar, 15)
         self.schedule_calendar.setStyleSheet("""
-                    QCalendarWidget QWidget { alternate-background-color: #EFE6DE; }
-                    QCalendarWidget QAbstractItemView:enabled { font-size: 16px; background-color: white; color: black; }
+QCalendarWidget {
+    background-color: #ffffff;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+}
+
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background-color: rgb(85, 0, 0);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+QCalendarWidget QToolButton {
+    color: white;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+    margin: 5px;
+    padding: 5px;
+}
+
+QCalendarWidget QToolButton:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+QCalendarWidget QWidget {
+    alternate-background-color: #f7f7f7; 
+}
+
+QCalendarWidget QAbstractItemView:enabled {
+    color: #333;  
+    selection-background-color: #4a90e2; 
+    selection-color: white;
+    outline: 0;
+}
+
+QCalendarWidget QAbstractItemView:disabled {
+    color: #bbbbbb;
+}
+
+QHeaderView {
+    background-color: transparent;
+}
+
+QCalendarWidget QMenu {
+    background-color: #f2e9e1; 
+    border: 1px solid #4a0000; 
+    color: #4a0000;            
+    font-family: "BabyPop";  
+    font-size: 14px;
+}
+
+QCalendarWidget QMenu::item {
+    padding: 5px 20px;
+    background-color: transparent;
+}
+
+QCalendarWidget QMenu::item:selected {
+    background-color: #4a0000; /* Цвет выделения */
+    color: #ffffff;            /* Цвет текста при выделении */
+}
+
+QCalendarWidget QAbstractItemView {
+    background-color: #f2e9e1;
+    selection-background-color: #4a0000;
+    selection-color: white;
+    selection-border: 0px;
+}
                 """)
 
         self.schedule_calendar.clicked.connect(self.manage_schedule_for_date)
