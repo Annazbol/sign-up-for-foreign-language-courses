@@ -658,8 +658,9 @@ class Program_Ui:
         try:
             course_id = self.get_selected_pk(self.table_of_courses)
             check_role = 'Студенты_На_Курсах' if self.current_role_id == 3 else 'Преподаватели_на_курсах'
-            if fetch_all("SELECT * FROM {check_role} WHERE id_курса = %s and UserId = %s", (course_id, self.current_user_id)) is None:
+            if fetch_all(f"SELECT * FROM {check_role} WHERE id_курса = %s and UserId = %s", (course_id, self.current_user_id)):
                 QtWidgets.QMessageBox.critical(None, "Ошибка", f"Пользователь состоит на данном курсе")
+                return
             course_name = fetch_cell(table_name='Курсы', column='Название', primary_key='id_курса', value=course_id)
             text, ok = QtWidgets.QInputDialog.getMultiLineText(
                 None,
@@ -838,7 +839,6 @@ class Program_Ui:
     def open_profile(self, tableWidget, frame):
         try:
             self.observed_user_id = self.get_selected_pk(tableWidget)
-            print(self.observed_user_id)
             role = fetch_cell(table_name="Пользователи", column="id_роли", value=self.observed_user_id, primary_key="UserId")
             if role == 3:
                 self.output_age.show()
@@ -881,9 +881,9 @@ class Program_Ui:
             reload_line(line_widget=self.output_roles, table_name="Роли", column="Название",
                         primary_key="id_роли", key_value=role)
 
-            current_country_id = fetch_cell(role, 'Страна', self.observed_user_id, 'UserId')
+            current_country_id = fetch_cell(table_role, 'Страна', self.observed_user_id, 'UserId')
 
-            reload_line(line_widget=self.output_country_profile, table_name='Страны', column="Название",
+            reload_line(line_widget=self.output_country, table_name='Страны', column="Название",
                         primary_key="id_страны",
                         key_value=current_country_id)
 
@@ -1325,6 +1325,57 @@ class Program_Ui:
             QtWidgets.QMessageBox.critical(None, "Ошибка", f"{e}")
             traceback.print_exc()
 
+    def delete_user(self):
+        try:
+            user_id = self.get_selected_pk(self.table_blocked_users)
+
+            if not user_id:
+                QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите пользователя для полного удаления")
+                return
+
+            confirm = QtWidgets.QMessageBox.question(
+                None, "Удаление аккаунта",
+                f"Вы действительно хотите БЕЗВОЗВРАТНО удалить учетную запись {user_id} и все связанные данные?",
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            )
+
+            if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+                role_id = fetch_cell("Пользователи", "id_роли", user_id, "UserId")
+
+                queries = []
+
+                queries.append(("DELETE FROM Заблокированные WHERE UserId = %s", (user_id,)))
+
+                if role_id == 3:
+                    queries.append(("DELETE FROM Контакты_студентов WHERE UserId = %s", (user_id,)))
+                    queries.append(("DELETE FROM Студенты_На_Курсах WHERE UserId = %s", (user_id,)))
+                    queries.append(("DELETE FROM Студенты WHERE UserId = %s", (user_id,)))
+                elif role_id == 2:
+                    queries.append(("DELETE FROM Контакты_преподавателей WHERE UserId = %s", (user_id,)))
+                    queries.append(("DELETE FROM Языки_преподавателей WHERE UserId = %s", (user_id,)))
+                    queries.append(("DELETE FROM Преподаватели WHERE UserId = %s", (user_id,)))
+
+                queries.append(("DELETE FROM Уведомления WHERE UserId = %s", (user_id,)))
+                queries.append(("DELETE FROM Заявки WHERE UserId = %s", (user_id,)))
+
+                queries.append(("DELETE FROM Пользователи WHERE UserId = %s", (user_id,)))
+
+                success = True
+                for q, v in queries:
+                    if not execute_query(q, v):
+                        success = False
+                        break
+
+                if success:
+                    QtWidgets.QMessageBox.information(None, "Успех", f"Пользователь {user_id} полностью удален")
+                    self.load_blocked_users_table()
+                else:
+                    QtWidgets.QMessageBox.critical(None, "Ошибка", "Произошла ошибка при удалении из одной из таблиц")
+
+        except Exception as e:
+            print(f"Ошибка при полном удалении пользователя: {e}")
+            traceback.print_exc()
+
     def add_lesson(self):
         try:
             dialog = QtWidgets.QDialog()
@@ -1439,6 +1490,114 @@ class Program_Ui:
     # ==============================
     # Helper methods
     # ==============================
+
+    def check_unread_notifications(self):
+        try:
+            if not hasattr(self, 'current_user_id') or not self.current_user_id:
+                return
+
+            query = "SELECT COUNT(*) FROM Уведомления WHERE UserId = %s AND Прочитано = 0"
+            result = fetch_all(query, (self.current_user_id,))
+            unread_count = result[0][0] if result else 0
+
+            tab_index = self.tabWidget_main.indexOf(self.tab_notification)
+
+            if tab_index != -1:
+                if unread_count > 0:
+                    self.tabWidget_main.setTabText(tab_index, f"Уведомления ({unread_count})")
+                else:
+                    self.tabWidget_main.setTabText(tab_index, "Уведомления")
+
+        except Exception as e:
+            import traceback
+            print(f"Ошибка обновления счетчика уведомлений: {e}")
+            traceback.print_exc()
+
+    def check_upcoming_lessons(self):
+        try:
+            import datetime
+            now = datetime.datetime.now()
+            today = now.date()
+
+            lessons = fetch_all(
+                "SELECT id_занятия, id_курса, Описание, id_преподавателя, Время_начала "
+                "FROM Занятия WHERE Дата = %s",
+                (today,)
+            )
+
+            if not lessons:
+                return
+
+            for lesson in lessons:
+                lesson_id, course_id, description, teacher_id, time_start_td = lesson
+
+                start_dt = datetime.datetime.combine(today, datetime.time.min) + time_start_td
+                time_diff = (start_dt - now).total_seconds()
+
+                course_name = fetch_cell('Курсы', 'Название', course_id, 'id_курса')
+
+                students = fetch_all("SELECT UserId FROM Студенты_На_Курсах WHERE id_курса = %s", (course_id,))
+                student_ids = [s[0] for s in students] if students else []
+
+                users_to_notify = [teacher_id] + student_ids
+
+                notifications_to_send = []
+
+                if time_diff > 0:
+                    notifications_to_send.append({
+                        "subject": f"[{lesson_id}] Занятие сегодня: {course_name}",
+                        "content": f"Напоминаем, что сегодня состоится занятие по курсу '{course_name}'.\nТема: {description}\nВремя начала: {start_dt.strftime('%H:%M')}."
+                    })
+
+                if 0 < time_diff <= 3600:
+                    notifications_to_send.append({
+                        "subject": f"[{lesson_id}] Занятие через час: {course_name}",
+                        "content": f"Занятие по курсу '{course_name}' начнется всего через час!\nТема: {description}\nВремя начала: {start_dt.strftime('%H:%M')}."
+                    })
+
+                if -900 <= time_diff <= 0:
+                    notifications_to_send.append({
+                        "subject": f"[{lesson_id}] Занятие началось: {course_name}",
+                        "content": f"Занятие по курсу '{course_name}' началось!\nТема: {description}"
+                    })
+
+                for notif in notifications_to_send:
+                    for uid in users_to_notify:
+                        exists = fetch_all(
+                            "SELECT 1 FROM Уведомления WHERE UserId = %s AND Дата = %s AND Тема = %s",
+                            (uid, today, notif["subject"])
+                        )
+
+                        if not exists:
+                            notif_id = get_new_id("Уведомления", "Номер_записи")
+                            notif_data = {
+                                "Номер_записи": notif_id,
+                                "UserId": uid,
+                                "Дата": today,
+                                "Тема": notif["subject"],
+                                "Содержание": notif["content"],
+                                "Прочитано": 0
+                            }
+                            insert_row("Уведомления", notif_data)
+
+                            if hasattr(self, 'current_user_id') and self.current_user_id == uid:
+                                self.update_active_notifications_tab()
+
+        except Exception as e:
+            import traceback
+            print(f"Ошибка в фоновом таймере уведомлений: {e}")
+            traceback.print_exc()
+
+    def update_active_notifications_tab(self):
+        try:
+            if hasattr(self, 'unchecked_notification_list') and hasattr(self,
+                                                                        'current_user_id') and self.current_user_id is not None:
+                reload_table(self.unchecked_notification_list,
+                             "SELECT Номер_записи, Тема, Дата FROM `Уведомления` WHERE `UserId` = %s AND `Прочитано` = 0 ORDER BY `Дата` DESC;",
+                             ("Тема", "Дата"), (self.current_user_id,))
+                self.check_unread_notifications()
+        except Exception:
+            pass
 
     def manage_schedule_for_date(self, qdate):
         try:
@@ -1949,6 +2108,7 @@ class Program_Ui:
                          "SELECT Номер_записи, Тема, Дата FROM `Уведомления` WHERE `UserId` = %s AND `Прочитано` = 1 ORDER BY `Дата` DESC;",
                          ("Тема", "Дата"), (self.current_user_id,))
 
+            self.check_unread_notifications()
             dialog.exec()
 
         except Exception as e:
@@ -2018,6 +2178,8 @@ class Program_Ui:
                              key_value=current_country_id)
                 if self.current_role_id == 3:
                     reload_line(line_widget=self.output_age_profile, table_name="Студенты", column="Возраст", primary_key="UserId", key_value=self.current_user_id)
+                    self.pushButtonAdd.hide()
+                    self.pushButtonExclude.setGeometry(860, 160, 291, 61)
                 surname = fetch_cell(table_name=role, column="Фамилия", primary_key="UserId",
                                      value=self.current_user_id)
                 name = fetch_cell(table_name=role, column="Имя", primary_key="UserId", value=self.current_user_id)
@@ -2027,6 +2189,7 @@ class Program_Ui:
                 self.output_name_profile.clear()
                 self.output_name_profile.setText(value)
             self.switch_forms(second=self.frame_main)
+            self.check_unread_notifications()
         except Exception as e:
             traceback.print_exc()
             print(e)
@@ -2057,6 +2220,7 @@ class Program_Ui:
             reload_table(self.table_of_profile,
                          "SELECT Курсы.id_курса, Курсы.Название AS Название_курса, Языки.Название AS Название_языка FROM Курсы JOIN Языки ON Курсы.id_языка = Языки.id_языка JOIN Преподаватели_на_курсах ON Курсы.id_курса = Преподаватели_на_курсах.id_курса WHERE Преподаватели_на_курсах.UserId = %s;",
                          ("Название", "Язык"), values=(self.current_user_id,))
+        self.check_unread_notifications()
 
     def exit_profile(self):
         self.tabWidget_main.clear()
@@ -2627,6 +2791,11 @@ class Program_Ui:
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.tabWidget_main.setCurrentIndex(0)
+
+        self.notification_timer = QtCore.QTimer()
+        self.notification_timer.timeout.connect(self.check_upcoming_lessons)
+        self.notification_timer.start(60000)
+
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     # ==============================
@@ -4132,6 +4301,7 @@ class Program_Ui:
         """)
         self._font(self.pushButtonDeleteUser, 28)
         self.pushButtonDeleteUser.setText("Удалить")
+        self.pushButtonDeleteUser.clicked.connect(self.delete_user)
 
     def _setup_notification_tab(self):
         self.tab_notification = QtWidgets.QWidget()
