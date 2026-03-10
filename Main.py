@@ -2349,7 +2349,7 @@ class Program_Ui:
             "Имя": self.textEdit_name.text(),
             "Отчество": self.textEdit_patronum.text(),
             "Страна": self.comboBox_country.currentIndex()-1,
-            "Возраст": int(self.textEdit_age.text()),
+            "Возраст": self.textEdit_age.value(),
             "Фото": image_blob
             }
             insert_row("Студенты", student_data)
@@ -2418,8 +2418,9 @@ class Program_Ui:
                 self.comboBox_country_edit.addItems([i[0] for i in fetch_all('SELECT Название from Страны')])
                 self.comboBox_country_edit.setCurrentIndex(int(fetch_cell(role, 'Страна', self.current_user_id, "UserId")))
                 if self.current_role_id == 3:
-                    reload_line(line_widget=self.textEdit_age_edit, table_name="Студенты", column="Возраст",
-                                primary_key="UserId", key_value=self.current_user_id)
+                    value = fetch_cell(table_name="Студенты", column="Возраст", value=self.current_user_id, primary_key="UserId")
+                    self.textEdit_age_edit.clear()
+                    self.textEdit_age_edit.setValue(value)
                 if self.current_role_id == 2:
                     reload_line(line_widget=self.textEdit_description_edit, table_name="Преподаватели", column="Описание",
                                 primary_key="UserId", key_value=self.current_user_id)
@@ -2453,7 +2454,7 @@ class Program_Ui:
                     "Имя": self.textEdit_name_edit.text(),
                     "Отчество": self.textEdit_patronum_edit.text(),
                     "Страна": self.comboBox_country_edit.currentIndex(),
-                    "Возраст": int(self.textEdit_age_edit.text()),
+                    "Возраст": int(self.textEdit_age_edit.value()),
                     "Фото": image_blob
                 }
                 update_row("Студенты", self.current_user_id, student_data, 'UserId')
@@ -3415,9 +3416,12 @@ class Program_Ui:
         self._font(self.comboBox_country, 15)
         self.comboBox_country.setGeometry(250, 530, 160, 30)
 
-        self.textEdit_age = QtWidgets.QLineEdit(self.frame_registration)
+        self.textEdit_age = QtWidgets.QSpinBox(self.frame_registration)
         self.textEdit_age.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
         self._font(self.textEdit_age, 15)
+        self.textEdit_age.setRange(8, 100)
+        self.textEdit_age.setSingleStep(1)
+        self.textEdit_age.setValue(18)
         self.textEdit_age.setGeometry(250, 580, 160, 30)
         self.textEdit_age.hide()
 
@@ -3852,9 +3856,12 @@ class Program_Ui:
         self._font(self.comboBox_country_edit, 15)
         self.comboBox_country_edit.setGeometry(250, 530, 160, 30)
 
-        self.textEdit_age_edit = QtWidgets.QLineEdit(self.frame_editing)
+        self.textEdit_age_edit = QtWidgets.QSpinBox(self.frame_editing)
         self.textEdit_age_edit.setStyleSheet("background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);")
         self._font(self.textEdit_age_edit, 15)
+        self.textEdit_age_edit.setRange(8, 100)
+        self.textEdit_age_edit.setSingleStep(1)
+        self.textEdit_age_edit.setValue(18)
         self.textEdit_age_edit.setGeometry(250, 580, 160, 30)
 
         self.textEdit_education_edit = QtWidgets.QLineEdit(self.frame_editing)
