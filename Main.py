@@ -392,7 +392,6 @@ class Program_Ui:
             dialog.setFixedSize(350, 180)
             layout = QtWidgets.QVBoxLayout(dialog)
 
-            # Загружаем типы из БД
             types_data = fetch_all('SELECT * FROM Типы_контактов')
             combo = QtWidgets.QComboBox()
             combo.addItems([str(i[1]) for i in types_data])
@@ -431,7 +430,6 @@ class Program_Ui:
                 }
                 insert_row("Контакты", data)
 
-                # Обновляем таблицу (запрос из вашего оригинала)
                 reload_table(self.table_of_contacts_editing,
                              "SELECT id_контакта, Тип, Значение FROM Контакты WHERE UserId = %s",
                              values=(self.current_user_id,))
@@ -549,8 +547,6 @@ class Program_Ui:
             layout.addWidget(buttons)
 
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-                # Внимание: здесь мы сохраняем в таблицу Языки_преподавателей (или вашу связующую),
-                # так как id_языка обычно уникален.
                 new_id = get_new_id("Языки_преподавателей", "id_записи")
                 data = {
                     "id_записи": new_id,
@@ -590,7 +586,6 @@ class Program_Ui:
 
             if QtWidgets.QMessageBox.question(None, "Удаление",
                                               "Удалить этот язык?") == QtWidgets.QMessageBox.StandardButton.Yes:
-                # Исправлено имя таблицы на ту, которая используется в JOIN выше
                 delete_row("Языки_преподавателей", "id_записи", pk)
                 reload_table(self.table_of_language_editing,
                              "SELECT yp.id_записи, y.Название, u.Название FROM Языки_преподавателей yp JOIN Языки y ON yp.id_языка = y.id_языка JOIN Уровни u ON yp.id_уровня = u.id_уровня WHERE yp.UserId = %s",
@@ -1327,7 +1322,7 @@ class Program_Ui:
 
     def delete_user(self):
         try:
-            user_id = self.get_selected_pk(self.table_blocked_users)
+            user_id = self.get_selected_pk(self.table_of_banned)
 
             if not user_id:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите пользователя для полного удаления")
@@ -1368,7 +1363,7 @@ class Program_Ui:
 
                 if success:
                     QtWidgets.QMessageBox.information(None, "Успех", f"Пользователь {user_id} полностью удален")
-                    self.load_blocked_users_table()
+                    self.main_tables()
                 else:
                     QtWidgets.QMessageBox.critical(None, "Ошибка", "Произошла ошибка при удалении из одной из таблиц")
 
@@ -1426,7 +1421,6 @@ class Program_Ui:
                 QtWidgets.QMessageBox.warning(None, "Внимание", "Выберите занятие для изменения!")
                 return
 
-            # Получаем текущие данные
             lesson = fetch_one("Занятия", "id_занятия", lesson_id)
             if not lesson: return
 
@@ -1439,11 +1433,9 @@ class Program_Ui:
             time_end = QtWidgets.QTimeEdit()
             desc_edit = QtWidgets.QLineEdit()
 
-            # Предзаполнение (извлекаем время из timedelta, если база возвращает его так)
-            t_s = lesson[5]  # Время_начала
-            t_e = lesson[6]  # Время_окончания
+            t_s = lesson[5]
+            t_e = lesson[6]
 
-            # Безопасный парсинг времени
             if hasattr(t_s, 'seconds'):
                 time_start.setTime(QtCore.QTime(t_s.seconds // 3600, (t_s.seconds // 60) % 60))
                 time_end.setTime(QtCore.QTime(t_e.seconds // 3600, (t_e.seconds // 60) % 60))
@@ -1602,7 +1594,7 @@ class Program_Ui:
     def manage_schedule_for_date(self, qdate):
         try:
             date_str = qdate.toString("yyyy-MM-dd")
-            self.observed_schedule_date = date_str  # Сохраняем дату для CRUD методов
+            self.observed_schedule_date = date_str
 
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle(f"Расписание на {qdate.toString('dd.MM.yyyy')}")
@@ -1664,28 +1656,24 @@ class Program_Ui:
 
     def update_calendar_highlights(self):
         try:
-            # Очищаем предыдущее форматирование (устанавливаем стандартный формат для всех возможных дат)
             default_format = QtGui.QTextCharFormat()
-            # Для надежности очищаем форматы в виджете
             self.schedule_calendar.setDateTextFormat(QtCore.QDate(), default_format)
 
             if not self.observed_course_id:
                 return
 
-            # Получаем даты занятий для выбранного курса
             query = "SELECT DISTINCT Дата FROM Занятия WHERE id_курса = %s"
             dates = fetch_all(query, (self.observed_course_id,))
 
             if not dates: return
 
-            # Создаем формат для дней с занятиями
             highlight_format = QtGui.QTextCharFormat()
-            highlight_format.setBackground(QtGui.QColor(255, 200, 200))  # Светло-красный цвет
+            highlight_format.setBackground(QtGui.QColor(255, 200, 200))
             highlight_format.setForeground(QtGui.QColor(85, 0, 0))
             highlight_format.setFontWeight(QtGui.QFont.Weight.Bold)
 
             for row in dates:
-                date_obj = row[0]  # date_obj имеет тип datetime.date
+                date_obj = row[0]
                 qdate = QtCore.QDate(date_obj.year, date_obj.month, date_obj.day)
                 self.schedule_calendar.setDateTextFormat(qdate, highlight_format)
 
@@ -1932,22 +1920,6 @@ class Program_Ui:
             self.label_age.hide()
             self.label_description.show()
             self.label_education.show()
-
-    def role_edit(self, index):
-        if self.current_role_id == 3:
-            self.textEdit_age_edit.show()
-            self.textEdit_description_edit.hide()
-            self.textEdit_education_edit.hide()
-            self.label_age_edit.show()
-            self.label_description_edit.hide()
-            self.label_education_edit.hide()
-        if self.current_role_id == 2:
-            self.textEdit_age_edit.hide()
-            self.textEdit_description_edit.show()
-            self.textEdit_education_edit.show()
-            self.label_age_edit.hide()
-            self.label_description_edit.show()
-            self.label_education_edit.show()
 
     def _font(self, object, size: int):
         font = QtGui.QFont()
@@ -2730,7 +2702,6 @@ class Program_Ui:
 
             rows = fetch_all(query, (user_id, start_date, end_date))
 
-            # 4. Заполняем интерфейс
             headers = ["Курс"] + headers_dates
             self.table_of_profile.clear()
             self.table_of_profile.setColumnCount(len(headers))
@@ -2739,13 +2710,11 @@ class Program_Ui:
 
             if rows:
                 for row_idx, row_data in enumerate(rows):
-                    # Столбец 0: Название курса (в row_data индекс 1, т.к. 0 — это id_курса)
                     item_name = QtWidgets.QTableWidgetItem(str(row_data[1]))
                     item_name.setFlags(item_name.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                     self._font(item_name, 10)
                     self.table_of_profile.setItem(row_idx, 0, item_name)
 
-                    # Столбцы 1 и далее: Оценки (в row_data начинаются со 2-го индекса)
                     dynamic_data = row_data[2:]
                     for col_idx, value in enumerate(dynamic_data, start=1):
                         display_value = str(value) if value is not None else "-"
@@ -2757,7 +2726,6 @@ class Program_Ui:
 
                         self.table_of_profile.setItem(row_idx, col_idx, item)
 
-            # Опционально: подгоняем размер колонок, как в первой функции
             self.table_of_profile.resizeColumnsToContents()
 
         except Exception as e:
